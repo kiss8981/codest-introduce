@@ -3,7 +3,7 @@ import remarkGfm from "remark-gfm";
 
 const Markdown: React.FC<MarkDownProps> = ({ markdown }) => {
   return (
-    <div className="markdown-body px-5 max-w-7xl mx-auto">
+    <div className="markdown-body px-5">
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
     </div>
   );
