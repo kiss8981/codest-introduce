@@ -1,6 +1,6 @@
 # Codest 회사 소개 사이트
 
-Next.js 기반 한국어 반응형 회사 소개 사이트입니다. 랜딩, GitHub Markdown 포트폴리오, 제작문의 페이지를 제공합니다.
+Next.js·Tailwind CSS 기반 한국어 반응형 회사 소개 사이트입니다. 랜딩, GitHub Markdown 포트폴리오, 제작문의 페이지를 제공합니다.
 
 ```bash
 yarn install

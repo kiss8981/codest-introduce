@@ -9,6 +9,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        brand: {
+          ink: "#15212c",
+          muted: "#647483",
+          blue: "#1688cb",
+          deep: "#086ba9",
+          navy: "#0d1e31",
+          soft: "#f3f7fa",
+        },
         gray: {
           100: "#FBFBFB",
           200: "#EAEAEA",
@@ -20,6 +28,9 @@ const config: Config = {
           800: "#333333",
           900: "#191919",
         },
+      },
+      fontFamily: {
+        sans: ["Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Arial", "sans-serif"],
       },
     },
   },

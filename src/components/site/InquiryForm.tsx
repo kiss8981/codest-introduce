@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import TurnstileWidget from "./TurnstileWidget";
+import { outlineButton, primaryButton } from "./styles";
 
 type InquiryFormProps = {
   enabled: boolean;
@@ -11,6 +12,8 @@ type InquiryFormProps = {
 };
 
 const initialForm = { name: "", phone: "", email: "", message: "", consent: false, website: "" };
+const fieldClass = "w-full rounded-[11px] border border-[#dce6ec] bg-[#f8fafb] px-4 py-4 text-[15px] text-brand-ink outline-none placeholder:text-[#9caab5] focus:border-brand-blue focus:ring-[3px] focus:ring-[#dceff9] disabled:cursor-not-allowed disabled:text-[#6e7c88]";
+const labelClass = "text-sm font-extrabold text-brand-ink";
 
 export default function InquiryForm({ enabled, policy, version, siteKey }: InquiryFormProps) {
   const [submissionId, setSubmissionId] = useState(() => crypto.randomUUID());
@@ -21,6 +24,7 @@ export default function InquiryForm({ enabled, policy, version, siteKey }: Inqui
   const [error, setError] = useState<string | null>(null);
   const [robotError, setRobotError] = useState<string | null>(null);
   const [form, setForm] = useState(initialForm);
+
   const handleToken = useCallback((value: string | null) => {
     setToken(value);
     if (value) setRobotError(null);
@@ -52,34 +56,61 @@ export default function InquiryForm({ enabled, policy, version, siteKey }: Inqui
 
   if (success) {
     return (
-      <div className="form-success" role="status">
-        <span className="success-mark" aria-hidden="true">✓</span>
-        <h2>문의가 접수되었습니다.</h2>
-        <p>내용을 확인한 뒤 연락드리겠습니다. 확인 메일은 발송 대기 중입니다.</p>
-        <p className="receipt-id">접수번호 {success}</p>
-        <button type="button" className="button button-outline" onClick={() => { setSuccess(null); setForm(initialForm); }}>새 문의 작성하기</button>
+      <div className="py-6" role="status">
+        <span className="grid h-[52px] w-[52px] place-items-center rounded-full bg-[#d6f4e5] text-2xl text-[#18784b]" aria-hidden="true">✓</span>
+        <h2 className="mt-5 text-3xl font-extrabold">문의가 접수되었습니다.</h2>
+        <p className="mt-3 leading-7 text-brand-muted">내용을 확인한 뒤 연락드리겠습니다. 확인 메일은 발송 대기 중입니다.</p>
+        <p className="mt-5 break-all rounded-xl bg-brand-soft p-4 text-[13px] text-brand-muted">접수번호 {success}</p>
+        <button type="button" className={`${outlineButton} mt-6`} onClick={() => { setSuccess(null); setForm(initialForm); }}>새 문의 작성하기</button>
       </div>
     );
   }
 
   return (
-    <form className="contact-form" onSubmit={submit}>
-      {!enabled && <div className="setup-note" role="status"><strong>온라인 접수를 준비하고 있어요.</strong><p>양식은 미리보기로 보여드리고 있습니다. 지금은 이메일로 편하게 문의해 주세요.</p></div>}
-      <div className="honeypot" aria-hidden="true"><label htmlFor="inquiry-website">웹사이트</label><input id="inquiry-website" name="website" tabIndex={-1} autoComplete="off" value={form.website} onChange={event => setForm({ ...form, website: event.target.value })} /></div>
-      <div className="field-row">
-        <div className="field"><label htmlFor="inquiry-name">이름 <span>*</span></label><input id="inquiry-name" autoComplete="name" placeholder="성함을 알려주세요" required maxLength={80} disabled={!enabled} value={form.name} onChange={event => setForm({ ...form, name: event.target.value })} /></div>
-        <div className="field"><label htmlFor="inquiry-phone">전화번호 <span>*</span></label><input id="inquiry-phone" type="tel" autoComplete="tel" placeholder="연락받을 번호" required maxLength={30} disabled={!enabled} value={form.phone} onChange={event => setForm({ ...form, phone: event.target.value })} /></div>
+    <form className="grid gap-6" onSubmit={submit}>
+      {!enabled && (
+        <div className="rounded-xl bg-[#eaf5fc] px-5 py-4 text-sm leading-6 text-[#225374]" role="status">
+          <strong>온라인 접수를 준비하고 있어요.</strong>
+          <p className="mt-1">양식은 미리보기로 보여드리고 있습니다. 지금은 이메일로 편하게 문의해 주세요.</p>
+        </div>
+      )}
+      <div className="absolute -left-[10000px] h-px w-px overflow-hidden" aria-hidden="true">
+        <label htmlFor="inquiry-website">웹사이트</label>
+        <input id="inquiry-website" name="website" tabIndex={-1} autoComplete="off" value={form.website} onChange={event => setForm({ ...form, website: event.target.value })} />
       </div>
-      <div className="field"><label htmlFor="inquiry-email">이메일 <span>*</span></label><input id="inquiry-email" type="email" autoComplete="email" placeholder="답장받을 이메일" required maxLength={254} disabled={!enabled} value={form.email} onChange={event => setForm({ ...form, email: event.target.value })} /></div>
-      <div className="field"><label htmlFor="inquiry-message">제작내용 <span>*</span></label><textarea id="inquiry-message" required minLength={20} maxLength={5000} disabled={!enabled} value={form.message} onChange={event => setForm({ ...form, message: event.target.value })} placeholder="어떤 서비스를 만들고 싶으신가요? 목적이나 필요한 기능을 아는 만큼 적어주세요." /><small>간단히 적어주셔도 괜찮습니다. (20자 이상)</small></div>
-      <div className="policy-box"><strong>개인정보 수집·이용 안내</strong>{enabled ? <><p>{policy}</p><small>안내 버전: {version}</small></> : <p>운영자가 개인정보 안내를 확정하면 이곳에 표시됩니다.</p>}</div>
-      <label className="check-row"><input type="checkbox" required disabled={!enabled} checked={form.consent} onChange={event => setForm({ ...form, consent: event.target.checked })} /><span>위 개인정보 수집·이용 안내에 동의합니다. <em>(필수)</em></span></label>
+      <div className="grid gap-6 sm:grid-cols-2 sm:gap-4">
+        <div className="grid gap-2">
+          <label className={labelClass} htmlFor="inquiry-name">이름 <span className="text-brand-deep">*</span></label>
+          <input className={fieldClass} id="inquiry-name" autoComplete="name" placeholder="성함을 알려주세요" required maxLength={80} disabled={!enabled} value={form.name} onChange={event => setForm({ ...form, name: event.target.value })} />
+        </div>
+        <div className="grid gap-2">
+          <label className={labelClass} htmlFor="inquiry-phone">전화번호 <span className="text-brand-deep">*</span></label>
+          <input className={fieldClass} id="inquiry-phone" type="tel" autoComplete="tel" placeholder="연락받을 번호" required maxLength={30} disabled={!enabled} value={form.phone} onChange={event => setForm({ ...form, phone: event.target.value })} />
+        </div>
+      </div>
+      <div className="grid gap-2">
+        <label className={labelClass} htmlFor="inquiry-email">이메일 <span className="text-brand-deep">*</span></label>
+        <input className={fieldClass} id="inquiry-email" type="email" autoComplete="email" placeholder="답장받을 이메일" required maxLength={254} disabled={!enabled} value={form.email} onChange={event => setForm({ ...form, email: event.target.value })} />
+      </div>
+      <div className="grid gap-2">
+        <label className={labelClass} htmlFor="inquiry-message">제작내용 <span className="text-brand-deep">*</span></label>
+        <textarea className={`${fieldClass} min-h-[175px] resize-y leading-7`} id="inquiry-message" required minLength={20} maxLength={5000} disabled={!enabled} value={form.message} onChange={event => setForm({ ...form, message: event.target.value })} placeholder="어떤 서비스를 만들고 싶으신가요? 목적이나 필요한 기능을 아는 만큼 적어주세요." />
+        <small className="text-xs text-[#8a98a3]">간단히 적어주셔도 괜찮습니다. (20자 이상)</small>
+      </div>
+      <div className="rounded-xl bg-brand-soft px-5 py-5 text-[13px] leading-7 text-[#627583]">
+        <strong className="text-sm text-brand-ink">개인정보 수집·이용 안내</strong>
+        {enabled ? <><p className="mt-2 whitespace-pre-wrap">{policy}</p><small className="mt-2 block">안내 버전: {version}</small></> : <p className="mt-2">운영자가 개인정보 안내를 확정하면 이곳에 표시됩니다.</p>}
+      </div>
+      <label className="flex items-start gap-3 text-sm leading-6 text-[#394d5b]">
+        <input className="mt-1 h-[17px] w-[17px] shrink-0 accent-brand-blue" type="checkbox" required disabled={!enabled} checked={form.consent} onChange={event => setForm({ ...form, consent: event.target.checked })} />
+        <span>위 개인정보 수집·이용 안내에 동의합니다. <em className="not-italic text-brand-deep">(필수)</em></span>
+      </label>
       {enabled && siteKey && <TurnstileWidget siteKey={siteKey} resetKey={resetKey} onToken={handleToken} onFailure={setRobotError} />}
-      {robotError && <p className="form-error" role="alert">{robotError} <button type="button" onClick={() => { setRobotError(null); setToken(null); setResetKey(value => value + 1); }}>다시 시도</button></p>}
-      {error && <p className="form-error" role="alert">{error} <a href="mailto:kdh@codest.kr">이메일로 문의하기</a></p>}
+      {robotError && <p className="text-sm leading-7 text-[#b43435]" role="alert">{robotError} <button className="underline" type="button" onClick={() => { setRobotError(null); setToken(null); setResetKey(value => value + 1); }}>다시 시도</button></p>}
+      {error && <p className="text-sm leading-7 text-[#b43435]" role="alert">{error} <a className="underline" href="mailto:kdh@codest.kr">이메일로 문의하기</a></p>}
       {enabled
-        ? <button className="button button-primary form-submit" type="submit" disabled={!token || pending || !form.consent}>{pending ? "접수 중..." : "문의 접수하기 ↗"}</button>
-        : <a className="button button-primary form-submit" href="mailto:kdh@codest.kr">이메일로 문의하기 ↗</a>}
+        ? <button className={`${primaryButton} w-full`} type="submit" disabled={!token || pending || !form.consent}>{pending ? "접수 중..." : "문의 접수하기 ↗"}</button>
+        : <a className={`${primaryButton} w-full`} href="mailto:kdh@codest.kr">이메일로 문의하기 ↗</a>}
     </form>
   );
 }

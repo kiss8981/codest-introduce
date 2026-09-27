@@ -1,6 +1,5 @@
-import React from "react";
-
 import Markdown from "@/app/components/Markdown";
+import { shell } from "@/components/site/styles";
 
 const text = `
 # 개인정보처리방침
@@ -31,15 +30,6 @@ const text = `
 | Google, Inc. (Google Analytics, Google Optimize) | 인터넷 프로토콜(IP), 브라우저/기기 정보, 접속한 페이지 등 | 통계 작성 및 학술 연구, 유저 타케팅 및 A/B 테스트 |
 `;
 
-const Privacy = () => {
-  return (
-    <>
-      <section className="bg-white py-24 max-w-6xl px-4 mx-auto">
-        <div className="flex min-h-screen flex-col items-center ">
-          <Markdown markdown={text} />
-        </div>
-      </section>
-    </>
-  );
-};
-export default Privacy;
+export default function Privacy() {
+  return <main className={`${shell} min-h-screen py-20 md:py-28`}><div className="mx-auto max-w-[900px]"><Markdown markdown={text} /></div></main>;
+}

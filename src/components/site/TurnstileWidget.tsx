@@ -11,7 +11,7 @@ export default function TurnstileWidget({ siteKey, resetKey, onToken, onFailure 
     let widgetId: string | undefined;
     const render = () => {
       if (!active || widgetId || !window.turnstile || !container.current) return;
-      widgetId = window.turnstile.render(container.current, { sitekey: siteKey, action: "inquiry", theme: "dark", size: "flexible", callback: (token: string) => onToken(token), "expired-callback": () => { onToken(null); onFailure("로봇 확인이 만료되었습니다. 다시 완료해 주세요."); }, "error-callback": () => { onToken(null); onFailure("로봇 확인에 실패했습니다. 다시 시도해 주세요."); } });
+      widgetId = window.turnstile.render(container.current, { sitekey: siteKey, action: "inquiry", theme: "light", size: "flexible", callback: (token: string) => onToken(token), "expired-callback": () => { onToken(null); onFailure("로봇 확인이 만료되었습니다. 다시 완료해 주세요."); }, "error-callback": () => { onToken(null); onFailure("로봇 확인에 실패했습니다. 다시 시도해 주세요."); } });
       clearInterval(timer);
     };
     if (!document.querySelector('script[data-turnstile="true"]')) {
@@ -29,5 +29,5 @@ export default function TurnstileWidget({ siteKey, resetKey, onToken, onFailure 
     render();
     return () => { active = false; clearInterval(timer); clearTimeout(timeout); if (widgetId && window.turnstile) window.turnstile.remove(widgetId); };
   }, [siteKey, resetKey, onToken, onFailure]);
-  return <div className="turnstile-host" ref={container} aria-label="로봇 확인" />;
+  return <div className="min-h-[70px] max-w-full" ref={container} aria-label="로봇 확인" />;
 }
