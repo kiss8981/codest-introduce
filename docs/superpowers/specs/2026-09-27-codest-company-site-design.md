@@ -18,7 +18,7 @@
 - 문의는 Supabase의 `inquiries`에 저장하고, 관리자 알림 큐와 발송 이력은 범용 테이블 `notification_admin`에서 관리.
 - `notification_admin`에는 문의 전용 ID나 외래 키를 두지 않는다. 문의 외의 이벤트도 같은 구조로 알림을 생성할 수 있어야 한다.
 - 문의 메일 알림은 접수 요청에서 직접 발송하지 않고 별도 배치가 kdh@codest.kr로 발송. 다른 유형의 알림은 해당 알림에 지정된 수신자를 사용.
-- 이메일 발송은 Nodemailer와 SMTP를 사용한다. 실제 발송을 처리할 SMTP 서버와 인증정보는 별도로 연결한다.
+- 이메일 발송은 Nodemailer와 SMTP2GO를 사용한다. 기존 Dooray는 `codest.kr` 수신 메일 서비스로 유지한다.
 - 기존 Next.js 14.1 프로젝트를 최신 안정 버전으로 업데이트.
 
 아래의 구체적인 레이아웃, GitHub 갱신 주기와 배치 주기는 이번 설계에서 제안하는 기본값이다. 설계 검토 시 함께 확정한다.
@@ -158,10 +158,12 @@
 
 ### 이메일 내용과 운영 연결
 
-- Next 배치 엔드포인트를 Node.js 런타임으로 실행하고 Nodemailer SMTP transport로 발송한다. 수신자·제목·본문·선택 회신 주소는 알림 레코드에서 읽는다.
-- `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`을 서버 환경변수로 받는다. 메일 서비스가 OAuth2 등 다른 인증을 요구하면 해당 서비스 정책에 맞춰 인증 구성을 연결한다. 기존 메일 서비스의 SMTP를 사용할 수 있으며 Nodemailer 자체가 SMTP 서버를 제공하지는 않는다.
+- Next 배치 엔드포인트를 Node.js 런타임으로 실행하고 Nodemailer SMTP transport로 SMTP2GO에 연결한다. 수신자·제목·본문·선택 회신 주소는 알림 레코드에서 읽는다.
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`을 서버 환경변수로 받는다. 기본값은 호스트 `mail.smtp2go.com`, 포트 `587`, `SMTP_SECURE=false`와 STARTTLS 필수이다. 계정 정보는 SMTP2GO의 SMTP Users에서 발급한 인증정보를 사용한다.
 - 465 포트는 즉시 TLS, 587 포트는 STARTTLS와 `requireTLS`를 사용하며 인증서 검증을 끄지 않는다. SMTP 연결·응답 타임아웃은 배치 실행 한도보다 짧게 지정한다.
-- 발신자는 SMTP 서비스에서 발송 권한이 있는 Codest 주소를 사용한다. 배포 서버의 SMTP 연결 가능 여부와 발송 한도를 확인한다. `verify()`로 연결·인증을 점검하고 실제 발신 주소의 발송 권한과 수신 여부는 시험 메일로 별도 확인한다.
+- SMTP2GO에서 `codest.kr`을 Sender Domain으로 인증하고 `Codest 알림 <notification@codest.kr>`을 기본 발신 주소로 제안한다. 문의 알림 수신자는 기존 Dooray의 `kdh@codest.kr`이다.
+- Dooray 수신용 MX 레코드를 유지한다. SMTP2GO 계정 화면에 표시되는 도메인 인증용 CNAME을 추가하며, 계정별 DNS 값은 임의로 만들지 않는다. 도메인 인증은 발신 권한 설정이며 별도의 수신 메일함 생성으로 간주하지 않는다.
+- 배포 서버의 SMTP 연결 가능 여부와 SMTP2GO 계정의 발송 한도를 확인한다. `verify()`로 연결·인증을 점검하고 실제 발신 주소의 발송 권한과 Dooray 수신 여부는 시험 메일로 별도 확인한다. 연결 검증이 실제 메일 수신 검증을 대체하지 않는다.
 - 문의 알림의 본문은 접수 처리 코드가 이름·전화번호·이메일·제작내용과 접수 식별자를 텍스트로 구성하고, 방문자 이메일을 회신 주소로 지정한다. 접수 식별자는 본문에 표시할 수 있으나 알림 테이블의 관계 키로 사용하지 않는다. 다른 유형의 알림은 그 목적에 맞는 제목과 본문을 사용한다.
 - `sent`는 SMTP 서버의 접수 성공을 의미하며 받은편지함 도착을 보장한다는 문구를 사용하지 않는다.
 - 두 테이블 모두 RLS를 켜고 공개 역할의 조회·쓰기 권한을 열지 않는다. DB 함수도 서버 역할에만 실행 권한을 부여한다. 비밀 키와 문의 내용을 브라우저 코드 또는 공개 로그에 포함하지 않는다.
@@ -177,7 +179,7 @@
 - 메일 내용과 전화번호·이메일을 일반 애플리케이션 로그에 기록하지 않는다.
 - 문의 개인정보 고지에는 실제 수집 항목·이용 목적·보유 기간·위탁 정보를 반영한다. 보유 기간 등 운영 정책은 운영자가 제공해야 하며 기존 앱의 고지를 그대로 재사용하거나 임의로 사실처럼 작성하지 않는다.
 
-서비스 연결 단계에서 필요한 값은 GitHub 저장소 설정, Supabase 프로젝트 URL과 서버 비밀 키, SMTP 연결·인증정보와 발송 가능한 메일 주소, 사이트의 운영 URL, 배치 실행 인증값과 스케줄 설정, 문의 개인정보 운영 정책이다. 비밀정보는 Git에 넣지 않고 환경변수 또는 Supabase Vault로 주입한다. 이 값의 제공은 설계 선택과 별개의 운영 연결 조건이다.
+서비스 연결 단계에서 필요한 값은 GitHub 저장소 설정, Supabase 프로젝트 URL과 서버 비밀 키, 도메인 인증을 마친 SMTP2GO 계정의 SMTP 인증정보, 사이트의 운영 URL, 배치 실행 인증값과 스케줄 설정, 문의 개인정보 운영 정책이다. 비밀정보는 Git에 넣지 않고 환경변수 또는 Supabase Vault로 주입한다. 이 값의 제공은 설계 선택과 별개의 운영 연결 조건이다.
 
 ## 7. 검증과 완료 기준
 
@@ -204,5 +206,8 @@
 - Nodemailer SMTP: https://nodemailer.com/smtp
 - Nodemailer 발송 결과: https://nodemailer.com/
 - Nodemailer 오류: https://nodemailer.com/errors
+- SMTP2GO Node.js 연결: https://www.smtp2go.com/setupguide/node-js-script/
+- SMTP2GO SMTP 설정: https://support.smtp2go.com/hc/en-gb/articles/223087627-SMTP-Settings
+- SMTP2GO 발신 도메인 인증: https://support.smtp2go.com/hc/en-gb/articles/115004408567-Verified-Senders
 
 이 문서의 검토가 끝나면 구현 순서와 구체적인 파일 변경을 담은 실행 계획을 작성한다.
