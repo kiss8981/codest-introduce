@@ -13,7 +13,7 @@ export default function Main() {
           <div className="flex justify-center">
             <a
               className="inline-flex items-center px-5 py-3 mt-2 font-medium text-white transition duration-500 ease-in-out transform border rounded-lg bg-gray-900"
-              href="mailto:admin@codest.kr"
+              href="mailto:kdh@codest.kr"
             >
               <span className="justify-center">이용 문의하기</span>
             </a>
