@@ -30,7 +30,7 @@ draft: false
 3. 사이트 운영자가 확정한 개인정보 수집 목적·항목·보유기간·거부권 고지문과 버전을 `CONTACT_POLICY_TEXT`, `CONTACT_POLICY_VERSION`에 설정합니다. 기존 `/privacy`는 과거 앱·위치 정보 안내이므로 이 고지를 대신하지 않습니다.
 4. 신뢰할 수 있는 프록시가 반드시 덮어쓰는 실제 클라이언트 IP 헤더의 이름을 `TRUSTED_CLIENT_IP_HEADER`에 설정하고 무작위 `INQUIRY_RATE_LIMIT_SECRET`을 지정합니다. 임의의 클라이언트가 설정할 수 있는 forwarded 헤더는 사용하지 마세요. 원 IP는 DB에 저장하지 않습니다. 별도 내부 스키마의 HMAC 제한값으로 15분간 최대 3건을 허용하며 스케줄 작업이 만료값을 지웁니다. 공개 요청 본문은 16KB로 제한하고 숨김 스팸 필드도 확인합니다.
 5. SMTP2GO에서 `codest.kr` 발신 도메인을 인증하고 SMTP User를 만듭니다. 계정 화면에 제시된 CNAME을 DNS에 추가하며 Dooray 수신용 MX는 유지합니다. `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM=kdh@codest.kr` 등을 설정합니다.
-6. 모든 설정을 확인한 뒤 `CONTACT_FORM_ENABLED=true`로 설정합니다. 하나라도 빠지면 폼 대신 `kdh@codest.kr` 메일 링크가 표시됩니다.
+6. 모든 설정을 확인한 뒤 `CONTACT_FORM_ENABLED=true`로 설정합니다. 하나라도 빠지면 입력 양식은 비활성 미리보기로 표시하고 `kdh@codest.kr` 메일 링크를 제공합니다.
 
 접수 요청은 Turnstile 검증 뒤 문의와 알림을 한 DB 트랜잭션에서 저장합니다. 방문자는 저장 직후 접수번호를 받고 메일은 5분 배치에서 처리됩니다. 전송 오류 시 폼 값과 제출 ID를 유지하고 새 Turnstile 토큰으로 재시도합니다. 제출 ID가 같으면 중복 저장하지 않습니다.
 
