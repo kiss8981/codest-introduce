@@ -115,28 +115,40 @@
 
 ### 범용 알림 테이블 `notification`
 
-이메일 한 건을 한 행으로 저장한다. 기존 발송 정보에 발신·회신·숨은 참조 주소만 더해 다음 10개 컬럼을 둔다.
+알림 한 건을 한 행으로 저장한다. 수신 대상 `to`는 이메일이나 전화번호를 담을 수 있는 독립된 TEXT 컬럼으로 유지하고, 이메일의 발신·회신·숨은 참조 설정은 사용자가 제안한 `recipt` JSONB 컬럼 하나에 묶는다. 다음 8개 컬럼을 둔다.
 
 | 컬럼 | 타입 | 용도 |
 | --- | --- | --- |
 | `id` | UUID, PK | 알림 식별자 |
-| `recipient` | TEXT | 받는 이메일 한 개, Nodemailer의 `to` |
-| `from` | TEXT | 발신 이메일 한 개 |
-| `reply_to` | TEXT, nullable | 회신 이메일 한 개, Nodemailer의 `replyTo` |
-| `bcc` | TEXT, nullable | 숨은 참조 이메일 한 개 |
+| `to` | TEXT | 수신 대상 한 개. 현재 이메일, 추후 전화번호도 사용 |
+| `recipt` | JSONB, nullable | 이메일 발신·회신·숨은 참조 설정 |
 | `subject` | TEXT | 제목 |
 | `body` | TEXT | 텍스트 본문 |
 | `status` | TEXT | `pending`, `processing`, `sent`, `failed`, `needs_review` |
 | `created_at` | TIMESTAMPTZ | 생성 시각 |
 | `sent_at` | TIMESTAMPTZ, nullable | SMTP 접수 성공 시각 |
 
-범용성은 어떤 업무든 발신·수신·회신·숨은 참조 주소와 제목·본문을 넣어 같은 발송 함수를 사용할 수 있다는 의미로 제한한다. `reply_to`와 `bcc`는 필요 없는 알림에서 생략할 수 있다. 업무 분류, 채널 구분, 메타데이터, 별도 발송 본문 사본, 응답 코드, 오류 상세, 재시도 횟수, 잠금 정보, 시도별 로그 컬럼을 추가하지 않는다. 이메일은 유일한 발송 채널이며 행 자체가 해당 알림의 발송 기록이다. 장애 조사는 알림 ID를 포함한 정제된 서버 로그와 SMTP2GO 발송 이력으로 수행한다.
+`to`에는 접수자의 이메일을 저장하며, `recipt`에는 다음 구조의 이메일 설정만 저장한다. `replyTo`, `bcc`는 복수 주소를 담는 배열이다. 현재 서비스에서는 발신자를 하나로 제한하고 `from`은 표시 이름과 주소를 가진 객체로 둔다.
+
+```json
+{
+  "from": { "name": "Codest", "address": "kdh@codest.kr" },
+  "replyTo": ["kdh@codest.kr"],
+  "bcc": ["kdh@codest.kr"]
+}
+```
+
+`to`는 필수이며 JSON 안에 중복 저장하지 않는다. DB의 `to` 컬럼 자체에 이메일 전용 제약은 두지 않는다. 현재 이메일 등록·발송 경로에서는 `to`의 단일 이메일 형식과 `recipt.from.address`를 필수로 검증한다. `from.name`은 선택이고 `replyTo`, `bcc`는 생략 또는 빈 배열을 허용한다. 배열 원소는 각각 이메일 주소 하나인 문자열이며 쉼표로 이어 붙인 주소 목록이나 헤더 개행은 허용하지 않는다. 등록 시와 발송 전에 같은 스키마로 검증하고, 허용된 주소 필드만 Nodemailer에 전달한다. 임의 JSON 전체를 메일 옵션으로 펼치지 않는다.
+
+전화번호를 수신 대상으로 사용하는 문자 발송은 추후 연동 범위다. 이를 위해 `to`는 범용 문자열, `recipt`는 nullable로 두지만 현재 배치가 전화번호를 SMTP 수신 주소로 넘기지는 않는다. 이메일 형식이나 설정이 유효하지 않은 대기 건은 발송 없이 `failed`로 기록한다.
+
+범용성은 어떤 업무든 수신 대상·주소 설정·제목·본문을 넣어 같은 알림 등록 함수를 사용할 수 있다는 의미로 제한한다. 업무 분류, 채널 구분, 메타데이터, 별도 발송 본문 사본, 응답 코드, 오류 상세, 재시도 횟수, 잠금 정보, 시도별 로그 컬럼을 추가하지 않는다. 현재 구현하는 발송 채널은 이메일이며 행 자체가 해당 알림의 발송 기록이다. 장애 조사는 알림 ID를 포함한 정제된 서버 로그와 SMTP2GO 발송 이력으로 수행한다.
 
 문의 전용 식별자나 문의 테이블 외래 키를 두지 않는다. 배치는 알림 테이블의 내용만으로 발송하며 문의 테이블을 조회하지 않는다. 호출자가 제목과 본문을 완성해 범용 등록 함수에 전달하고, 발송을 시작한 알림의 내용은 변경하지 않는다.
 
 ### 접수의 일관성
 
-- 문의 접수용 서버 DB 함수가 문의 한 건과 접수 확인 알림 한 건을 한 트랜잭션에서 저장한다. `recipient`는 형식을 검증한 접수자 이메일 한 개로 지정하고, `from`, `reply_to`, `bcc`는 서버가 모두 `kdh@codest.kr`로 지정한다. 쉼표로 구분한 여러 주소나 헤더 개행을 허용하지 않는다. 문의와 알림 중 하나만 저장되는 상태를 허용하지 않는다.
+- 문의 접수용 서버 DB 함수가 문의 한 건과 접수 확인 알림 한 건을 한 트랜잭션에서 저장한다. 독립된 `to` 컬럼에는 형식을 검증한 접수자 이메일 한 개를 저장하고 서버가 `recipt`를 구성한다. `recipt.from.address`는 `kdh@codest.kr`, `recipt.from.name`은 `Codest`, `recipt.replyTo`와 `recipt.bcc`는 각각 `["kdh@codest.kr"]`로 지정한다. 문의와 알림 중 하나만 저장되는 상태를 허용하지 않는다.
 - 같은 제출의 네트워크 재시도는 `submission_id`로 구분한다. 같은 내용이면 기존 접수 결과를 반환하고, 다른 내용이면 충돌로 처리한다.
 - 새 문의가 실제로 생성된 경우에만 알림을 등록한다. 기존 `submission_id`의 재요청은 알림을 추가 생성하지 않는다. 다른 내부 기능은 문의를 만들지 않고 범용 알림 등록 함수만 호출할 수 있다.
 - DB 저장 실패 시 성공 안내를 하지 않는다. 저장이 완료되면 메일 발송 결과와 무관하게 접수 완료를 안내한다.
@@ -146,10 +158,10 @@
 
 - 기본 제안은 Supabase Cron이 5분마다 Next 서버의 `POST /api/internal/notifications`를 호출하는 방식이다. 5분은 사용자 확정 전의 제안값이다.
 - 실행 인증용 비밀값을 서버 환경변수와 Supabase Vault에 저장하고 요청 헤더로 전달한다. 인증 실패 시 DB 조회나 발송을 실행하지 않는다.
-- 한 번에 최대 10건을 처리하며 알림 레코드 한 건당 `recipient`와 선택적인 `bcc`를 지정해 메일 한 통을 발송한다. 문의 접수 확인은 접수자와 담당자가 같은 본문을 받는다. 처리 대상은 `pending` 상태뿐이다.
+- 한 번에 최대 10건을 처리하며 알림 레코드 한 건당 `to`와 선택적인 `recipt.bcc`를 지정해 메일 한 통을 발송한다. 문의 접수 확인은 접수자와 담당자가 같은 본문을 받는다. 처리 대상은 `pending` 상태뿐이다.
 - DB에서 `FOR UPDATE SKIP LOCKED`로 행을 확보하고 같은 트랜잭션에서 `processing`으로 바꾼다. 동시 배치가 같은 알림을 가져가지 못하게 한다. 별도의 잠금 컬럼을 추가하지 않는다.
 - SMTP 요청과 배치 실행에 시간 한도를 둔다. 실행 한도 안에서 시작할 수 없는 남은 건은 `pending`으로 두고 다음 배치가 처리한다.
-- Nodemailer의 `sendMail()`이 성공하고 `recipient`와 `bcc`의 중복을 제거한 모든 대상이 `accepted`에 포함되면 `sent`와 `sent_at`을 기록한다. 전체 대상의 SMTP 미접수가 확인되면 `failed`, 일부 대상만 접수되면 `needs_review`로 남긴다. 일부 접수된 메일을 전체 재발송하지 않는다. 진단용 오류는 서버 로그에 알림 ID와 정제한 원인만 남기고, DB에 수신자별 결과·응답 코드·상세 오류를 저장하지 않는다.
+- Nodemailer의 `sendMail()`이 성공하고 `to`와 `recipt.bcc`의 중복을 제거한 모든 대상이 `accepted`에 포함되면 `sent`와 `sent_at`을 기록한다. `from`과 `replyTo`는 수신 대상 계산에 넣지 않는다. 전체 대상의 SMTP 미접수가 확인되면 `failed`, 일부 대상만 접수되면 `needs_review`로 남긴다. 일부 접수된 메일을 전체 재발송하지 않는다. 진단용 오류는 서버 로그에 알림 ID와 정제한 원인만 남기고, DB에 수신자별 결과·응답 코드·상세 오류를 저장하지 않는다.
 - 접수 결과가 불명확한 연결 종료·타임아웃은 `needs_review`로 남긴다. SMTP 접수 후 DB 기록 실패나 서버 중단으로 `processing`에 남은 건도 자동 회수·재발송하지 않고 운영자가 발송 이력을 확인한다.
 - 초기에는 자동 재시도와 단계별 재시도 간격을 구현하지 않는다. 운영자가 실패 건을 확인하고 원인을 해결한 뒤 필요하면 같은 본문으로 새 알림을 등록한다. 일부 대상만 실패한 경우에는 SMTP2GO 이력을 확인해 실패한 주소에만 새 알림을 보내고 이미 접수된 주소를 다시 포함하지 않는다. 원래 행은 이력으로 남기며 상태를 `pending`으로 되돌리지 않는다.
 - 재발송 전에는 이전 배치가 종료되었고 재발송 대상에 대해 SMTP가 메일을 접수하지 않았음을 확인한다. 추적용 Message-ID는 알림 ID에서 계산하여 메일 헤더에 사용하고 별도 컬럼으로 저장하지 않는다. SMTP에서 동일 Message-ID를 중복 제거한다고 가정하지 않는다.
@@ -157,10 +169,10 @@
 
 ### 이메일 내용과 운영 연결
 
-- Next 배치 엔드포인트를 Node.js 런타임으로 실행하고 Nodemailer SMTP transport로 SMTP2GO에 연결한다. 알림 레코드의 `recipient`는 `to`, `reply_to`는 `replyTo`, `body`는 `text`로 전달하고 `from`, `bcc`, `subject`도 해당 행에서 읽는다. 숨은 참조는 Nodemailer의 `bcc` 옵션으로 지정하고 본문이나 공개 수신 헤더에 복사하지 않는다.
+- Next 배치 엔드포인트를 Node.js 런타임으로 실행하고 Nodemailer SMTP transport로 SMTP2GO에 연결한다. 알림 레코드의 독립된 `to` 컬럼을 메일의 `to`로 전달하고, `recipt`에서 검증한 `from`, `replyTo`, `bcc`를 각각 같은 이름의 메일 옵션으로 전달한다. `subject`는 해당 행에서 읽고 `body`는 `text`로 전달한다. 숨은 참조는 Nodemailer의 `bcc` 옵션으로 지정하고 본문이나 공개 수신 헤더에 복사하지 않는다.
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`을 서버 환경변수로 받는다. 기본값은 호스트 `mail.smtp2go.com`, 포트 `587`, `SMTP_SECURE=false`와 STARTTLS 필수이다. 계정 정보는 SMTP2GO의 SMTP Users에서 발급한 인증정보를 사용한다.
 - 465 포트는 즉시 TLS, 587 포트는 STARTTLS와 `requireTLS`를 사용하며 인증서 검증을 끄지 않는다. SMTP 연결·응답 타임아웃은 배치 실행 한도보다 짧게 지정한다.
-- SMTP2GO에서 `codest.kr`을 Sender Domain으로 인증하고 `MAIL_FROM=kdh@codest.kr`을 사용한다. 문의 알림 등록 시 `from`, `reply_to`, `bcc`에 이 주소를 저장하며 화면에 보이는 발신 이름은 `Codest`로 표시한다. 접수자는 자신이 제출한 이메일로 확인 메일을 받고 담당자는 기존 Dooray의 `kdh@codest.kr`에서 숨은 참조 사본을 받는다. 배치는 발송 시점의 기본값으로 저장된 주소를 덮어쓰지 않는다.
+- SMTP2GO에서 `codest.kr`을 Sender Domain으로 인증하고 `MAIL_FROM=kdh@codest.kr`을 사용한다. 문의 알림 등록 시 `recipt.from.address`, `recipt.replyTo`, `recipt.bcc`에 이 주소를 앞서 정의한 객체·배열 구조로 저장하며 화면에 보이는 발신 이름은 `Codest`로 표시한다. 접수자는 자신이 제출한 이메일로 확인 메일을 받고 담당자는 기존 Dooray의 `kdh@codest.kr`에서 숨은 참조 사본을 받는다. 배치는 발송 시점의 기본값으로 저장된 주소를 덮어쓰지 않는다.
 - Dooray 수신용 MX 레코드를 유지한다. SMTP2GO 계정 화면에 표시되는 도메인 인증용 CNAME을 추가하며, 계정별 DNS 값은 임의로 만들지 않는다. 도메인 인증은 발신 권한 설정이며 별도의 수신 메일함 생성으로 간주하지 않는다.
 - 배포 서버의 SMTP 연결 가능 여부와 SMTP2GO 계정의 발송 한도를 확인한다. `verify()`로 연결·인증을 점검하고 실제 발신 주소의 발송 권한, 접수자 주소와 Dooray의 숨은 참조 수신, 접수자 답장의 Dooray 도착은 시험 메일로 별도 확인한다. 연결 검증이 실제 메일 수신 검증을 대체하지 않는다.
 - 문의 접수 확인의 제목은 `[Codest] 제작문의가 접수되었습니다`로 하고, 본문은 접수 안내와 “내용을 확인한 뒤 연락드리겠습니다.”라는 문구, 제출한 이름·전화번호·이메일·제작내용, 접수 식별자를 텍스트로 구성한다. 내부 전용 메모는 포함하지 않는다. 접수자가 메일에 답장하면 `replyTo`에 지정한 `kdh@codest.kr`로 전달된다. 담당자가 숨은 참조 사본을 보고 접수자에게 연락할 때는 `to`나 본문에 표시된 접수자 주소를 수신자로 지정한다. 접수 식별자는 본문에 표시할 수 있으나 알림 테이블의 관계 키로 사용하지 않는다. 다른 유형의 알림은 그 목적에 맞는 제목과 본문을 사용한다.
@@ -188,7 +200,7 @@
 - 콘텐츠 검증은 front matter 오류, 초안 숨김, 새 slug, 잘못된 slug, 이미지 없는 콘텐츠, 사용자가 추가한 상대 이미지 경로, GitHub 실패 시 캐시 유지에 집중한다. 빈 이미지 영역의 비율 유지와 대체 사진이 자동으로 채워지지 않는 동작도 확인한다.
 - 문의 검증은 유효한 제출, 잘못된 입력, 중복 요청, 두 테이블의 원자적 저장·롤백, 접수 요청에서 메일을 발송하지 않는 동작, 빈도 제한에 집중한다.
 - 배치 검증은 인증 실패, 동시 실행에서 한 건을 한 작업자만 확보하는지, 주 수신자와 숨은 참조 모두의 SMTP 접수 확인, 일부 접수와 전체 실패·결과 불명확 상태의 구분, 서버 중단 후 `processing` 건 자동 재발송 차단, 수동 재발송 시 원래 행의 이력 보존과 이미 접수된 대상의 제외에 집중한다. 접수 한 건에 알림 한 행만 생성되는지와 `from`, `replyTo`, `bcc` 매핑, 수신 메일의 Bcc 헤더 제거도 확인한다.
-- 문의 레코드 없이 일반 공지 메일을 생성·발송할 수 있는지, 숨은 참조 없는 알림도 동일한 배치에서 처리되는지, 배치가 문의 테이블을 조회하지 않는지 검증한다. 문의 외래 키 부재와 공개 폼의 복수 주소·헤더 개행·발신 및 숨은 참조 주소 변조 차단도 확인한다.
+- 문의 레코드 없이 일반 공지 메일을 생성·발송할 수 있는지, 복수 회신 주소·숨은 참조와 숨은 참조 없는 알림도 동일한 배치에서 처리되는지, 배치가 문의 테이블을 조회하지 않는지 검증한다. 독립된 `to` 컬럼과 `recipt`의 필수 필드·배열·각 주소 검증, 전화번호 대상의 SMTP 호출 차단, 임의 메일 옵션 전달 차단, 문의 외래 키 부재와 공개 폼의 복수 주소·헤더 개행·발신 및 숨은 참조 주소 변조 차단도 확인한다.
 - 기존 `/driver`, `/privacy`가 유지되는지 확인한다.
 - 자격증명 없이 수행한 테스트는 모의 연동 검증으로 구분한다. 실제 Supabase 저장, 스케줄러의 배치 호출과 실제 메일 수신은 서비스 연결 후 별도로 확인해야 한다.
 - README와 `.env.example`, DB 마이그레이션, 포트폴리오 작성 예제, 배치 운영·재처리 방법을 제공한다.
@@ -200,10 +212,12 @@
 - Next.js ISR: https://nextjs.org/docs/app/guides/incremental-static-regeneration
 - Supabase 데이터 보호: https://supabase.com/docs/guides/database/secure-data
 - Supabase 테이블 관리: https://supabase.com/docs/guides/database/tables
+- Supabase JSONB: https://supabase.com/docs/guides/database/json
 - Supabase Cron: https://supabase.com/docs/guides/cron
 - Supabase HTTP 호출: https://supabase.com/docs/guides/database/extensions/pg_net
 - Nodemailer SMTP: https://nodemailer.com/smtp
 - Nodemailer 수신·회신·숨은 참조 설정: https://nodemailer.com/message
+- Nodemailer 주소 객체·배열: https://nodemailer.com/message/addresses
 - Nodemailer 발송 결과: https://nodemailer.com/
 - Nodemailer 오류: https://nodemailer.com/errors
 - SMTP2GO Node.js 연결: https://www.smtp2go.com/setupguide/node-js-script/
