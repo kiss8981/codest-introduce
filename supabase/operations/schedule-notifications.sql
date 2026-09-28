@@ -9,7 +9,7 @@ select cron.unschedule(jobid) from cron.job where jobname = 'codest-rate-limit-c
 select cron.schedule('codest-rate-limit-cleanup', '*/15 * * * *', $$
   delete from codest_internal.inquiry_rate_limit where created_at < now() - interval '15 minutes';
 $$);
-select cron.schedule('codest-notifications', '*/5 * * * *', $$
+select cron.schedule('codest-notifications', '30 seconds', $$
   select net.http_post(
     url := (select decrypted_secret from vault.decrypted_secrets where name = 'codest_batch_url'),
     headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'codest_batch_secret')),

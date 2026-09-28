@@ -21,11 +21,11 @@ Codest Web Supabase 프로젝트에는 `supabase/migrations/202609280001_portfol
 5. `SUPABASE_URL`, 서버 전용 `SUPABASE_SECRET_KEY`(`sb_secret_...`), `SITE_URL`, Turnstile 키와 유효한 `MAIL_FROM`을 설정하면 문의 폼이 활성화됩니다. 접수 시 문의와 `pending` 알림이 한 트랜잭션으로 저장됩니다. SMTP 설정이나 메일 배치 설정이 없어도 DB 접수는 가능합니다.
 6. SMTP2GO에서 `codest.kr` 발신 도메인이 Verified 상태이고 SMTP 인증이 정상 동작하는 것을 확인했습니다. 다른 도메인을 쓰면 계정 화면에 제시된 CNAME을 DNS에 추가하고, Dooray 수신용 MX는 유지합니다. 인증을 확인한 `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM=kdh@codest.kr` 등을 설정합니다.
 
-접수 요청은 Turnstile 검증 뒤 문의와 알림을 한 DB 트랜잭션에서 저장합니다. 방문자는 저장 직후 접수번호를 받고 메일은 5분 배치에서 처리됩니다. 전송 오류 시 폼 값과 제출 ID를 유지하고 새 Turnstile 토큰으로 재시도합니다. 제출 ID가 같으면 중복 저장하지 않습니다.
+접수 요청은 Turnstile 검증 뒤 문의와 알림을 한 DB 트랜잭션에서 저장합니다. 방문자는 저장 직후 접수번호를 받고 메일은 30초 간격의 배치에서 처리됩니다. 전송 오류 시 폼 값과 제출 ID를 유지하고 새 Turnstile 토큰으로 재시도합니다. 제출 ID가 같으면 중복 저장하지 않습니다.
 
 ## 메일 배치
 
-`NOTIFICATION_BATCH_SECRET`을 무작위 값으로 Vercel 서버 환경과 Supabase Vault에 동일하게 설정하고, `supabase/operations/schedule-notifications.sql`의 안내에 따라 Cron 작업을 등록합니다. 이 값은 5분마다 공개 Next API `POST /api/internal/notifications`를 호출하는 배치를 인증합니다. 서버는 최대 10건을 순차 처리합니다. `pending`을 원자적으로 `processing`으로 확보하고 결과를 `sent`, `failed`, `needs_review`로 기록합니다. 자동 재발송은 하지 않습니다. `processing`에 오래 남은 건이나 `needs_review`는 SMTP2GO 발송 이력을 대조한 뒤 수동 처리합니다. 스케줄 중단은 `unschedule-notifications.sql`을 실행합니다.
+`NOTIFICATION_BATCH_SECRET`을 무작위 값으로 Vercel 서버 환경과 Supabase Vault에 동일하게 설정하고, `supabase/operations/schedule-notifications.sql`의 안내에 따라 Cron 작업을 등록합니다. 이 값은 30초마다 공개 Next API `POST /api/internal/notifications`를 호출하는 배치를 인증합니다. 서버는 최대 10건을 순차 처리합니다. `pending`을 원자적으로 `processing`으로 확보하고 결과를 `sent`, `failed`, `needs_review`로 기록합니다. 자동 재발송은 하지 않습니다. `processing`에 오래 남은 건이나 `needs_review`는 SMTP2GO 발송 이력을 대조한 뒤 수동 처리합니다. 스케줄 중단은 `unschedule-notifications.sql`을 실행합니다.
 
 `notification`은 정확히 `id`, `to`, `recipt`, `type`, `payload`, `status`, `created_at`, `sent_at`의 여덟 컬럼입니다. `recipt`는 요청한 표기를 그대로 사용하며 `{ "from": { "name": "Codest", "address": "kdh@codest.kr" }, "replyTo": ["kdh@codest.kr"], "bcc": ["kdh@codest.kr"] }` 형태입니다. 문의자 이메일이 `to`, 대표 메일이 `bcc`인 메일 한 건을 발송합니다. 배열에 여러 회신·숨은 참조 주소를 넣을 수 있습니다. `to`는 독립된 TEXT로 향후 전화번호도 담을 수 있지만 현재 발송기는 이메일만 지원합니다. 현재 지원하는 `type`은 `inquiry_received.v1` 하나이며 템플릿은 `src/lib/notifications/templates/inquiry-received.v1.html.hbs`입니다. `payload`는 치환 값만 저장합니다. HTML은 Handlebars가 기본 이스케이프하며 일반 텍스트 대안도 같이 보냅니다. `sent`는 SMTP 접수이며 실제 받은편지함 도착 보장은 아닙니다.
 
