@@ -7,6 +7,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const pages = ["", "/portfolio", "/contact", "/privacy", "/driver"];
   return [
     ...pages.map(path => ({ url: new URL(path || "/", base).href, lastModified: new Date() })),
-    ...(await getPortfolioProjects()).map(project => ({ url: new URL(`/portfolio/${project.slug}`, base).href, lastModified: project.publishedAt })),
+    ...(await getPortfolioProjects()).map(project => ({ url: new URL(`/portfolio/${project.slug}`, base).href, lastModified: new Date(project.updatedAt) })),
   ];
 }

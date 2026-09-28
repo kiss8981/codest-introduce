@@ -7,7 +7,12 @@ export default function ProjectCard({ project, wide = false }: { project: Portfo
   return (
     <article className={wide ? "md:col-span-2" : ""}>
       <Link href={`/portfolio/${project.slug}`} aria-label={`${project.title} 자세히 보기`} className="group block">
-        {project.cover ? <img className={coverClass} src={project.cover} alt="" /> : <div className={coverClass} aria-hidden="true" />}
+        {project.cover ? (
+          <picture>
+            {project.mobileCover && <source media="(max-width: 639px)" srcSet={project.mobileCover} />}
+            <img className={coverClass} src={project.cover} alt="" loading="lazy" />
+          </picture>
+        ) : <div className={coverClass} aria-hidden="true" />}
         <div className="flex items-start justify-between gap-5 pt-6">
           <div>
             <p className="mb-2.5 text-[13px] font-bold text-brand-deep">{project.category}{project.stack.length ? ` · ${project.stack.join(" / ")}` : ""}</p>

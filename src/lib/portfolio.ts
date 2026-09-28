@@ -1,86 +1,138 @@
 import "server-only";
-import fs from "node:fs/promises";
-import path from "node:path";
-import matter from "gray-matter";
+import { unstable_cache } from "next/cache";
 import { z } from "zod";
+import { db } from "@/lib/db";
 
-const metaSchema = z.object({
-  title: z.string().min(1), summary: z.string().min(1),
-  cover: z.string().nullish(),
-  category: z.string().default("프로젝트"), stack: z.array(z.string()).default([]),
-  publishedAt: z.coerce.date(), featured: z.boolean().default(false), draft: z.boolean().default(false),
+const portfolioRow = z.object({
+  id: z.string().uuid(),
+  slug: z.string(),
+  name: z.string(),
+  summary: z.string(),
+  description: z.string(),
+  category: z.string(),
+  stack: z.array(z.string()),
+  started_at: z.string().nullable(),
+  ended_at: z.string().nullable(),
+  is_maintained: z.boolean(),
+  featured: z.boolean(),
+  thumbnail_photo_id: z.string().uuid().nullable(),
+  mobile_thumbnail_photo_id: z.string().uuid().nullable(),
+  updated_at: z.string(),
 });
-export type PortfolioProject = z.infer<typeof metaSchema> & { slug: string; body: string };
+
+const photoRow = z.object({
+  id: z.string().uuid(),
+  portfolio_id: z.string().uuid(),
+  storage_key: z.string(),
+  alt_text: z.string(),
+  gallery_order: z.number().int().nullable(),
+  created_at: z.string(),
+});
+
+const urlRow = z.object({
+  id: z.string().uuid(),
+  portfolio_id: z.string().uuid(),
+  type: z.string(),
+  label: z.string().nullable(),
+  url: z.string(),
+  sort_order: z.number().int(),
+});
+
+export type PortfolioProject = {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  body: string;
+  category: string;
+  stack: string[];
+  startedAt: string | null;
+  endedAt: string | null;
+  isMaintained: boolean;
+  featured: boolean;
+  cover: string | null;
+  mobileCover: string | null;
+  gallery: { id: string; src: string; alt: string }[];
+  urls: { type: string; label: string | null; url: string }[];
+  updatedAt: string;
+};
+
 const slugPattern = /^[a-z0-9][a-z0-9-]{0,79}$/;
 
-export function portfolioImageUrl(source: string | undefined): string | null {
-  if (!source) return null;
-  try {
-    const absolute = new URL(source);
-    return absolute.protocol === "https:" ? absolute.href : null;
-  } catch {
-    const config = githubConfig();
-    if (!config || source.startsWith("/") || source.startsWith("." + ".")) return null;
-    const base = `https://raw.githubusercontent.com/${config.owner}/${config.repo}/${config.ref}/${config.dir}/`;
-    const url = new URL(source, base);
-    if (!url.href.startsWith(base)) return null;
-    if (process.env.GITHUB_TOKEN) {
-      const relative = url.pathname.slice(new URL(base).pathname.length);
-      return `/api/portfolio-assets/${relative.split("/").map(part => encodeURIComponent(decodeURIComponent(part))).join("/")}`;
-    }
-    return url.href;
-  }
+async function loadPortfolioProjects(): Promise<PortfolioProject[]> {
+  const client = db();
+  const { data: rawProjects, error: projectError } = await client
+    .from("portfolio")
+    .select("id, slug, name, summary, description, category, stack, started_at, ended_at, is_maintained, featured, thumbnail_photo_id, mobile_thumbnail_photo_id, updated_at")
+    .eq("is_published", true)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false });
+
+  if (projectError) throw new Error(`포트폴리오 조회 실패: ${projectError.code}`);
+  const projects = z.array(portfolioRow).parse(rawProjects);
+  if (!projects.length) return [];
+
+  const ids = projects.map(project => project.id);
+  const [photoResult, urlResult] = await Promise.all([
+    client.from("photo_map").select("id, portfolio_id, storage_key, alt_text, gallery_order, created_at").in("portfolio_id", ids),
+    client.from("portfolio_url").select("id, portfolio_id, type, label, url, sort_order").in("portfolio_id", ids),
+  ]);
+  if (photoResult.error) throw new Error(`포트폴리오 사진 조회 실패: ${photoResult.error.code}`);
+  if (urlResult.error) throw new Error(`포트폴리오 링크 조회 실패: ${urlResult.error.code}`);
+
+  const photos = z.array(photoRow).parse(photoResult.data);
+  const urls = z.array(urlRow).parse(urlResult.data);
+  const publicUrl = (key: string) => client.storage.from("portfolio").getPublicUrl(key).data.publicUrl;
+
+  return projects.map(project => {
+    const ownPhotos = photos.filter(photo => photo.portfolio_id === project.id);
+    const coverPhoto = ownPhotos.find(photo => photo.id === project.thumbnail_photo_id);
+    const mobilePhoto = ownPhotos.find(photo => photo.id === project.mobile_thumbnail_photo_id);
+    const cover = coverPhoto ? publicUrl(coverPhoto.storage_key) : mobilePhoto ? publicUrl(mobilePhoto.storage_key) : null;
+    const mobileCover = mobilePhoto ? publicUrl(mobilePhoto.storage_key) : cover;
+    const gallery = ownPhotos
+      .filter(photo => photo.gallery_order !== null)
+      .sort((a, b) => a.gallery_order! - b.gallery_order! || a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))
+      .map(photo => ({ id: photo.id, src: publicUrl(photo.storage_key), alt: photo.alt_text }));
+    const projectUrls = urls
+      .filter(url => url.portfolio_id === project.id)
+      .sort((a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id))
+      .map(url => ({ type: url.type, label: url.label, url: url.url }));
+
+    return {
+      id: project.id,
+      slug: project.slug,
+      title: project.name,
+      summary: project.summary,
+      body: project.description,
+      category: project.category,
+      stack: project.stack,
+      startedAt: project.started_at,
+      endedAt: project.ended_at,
+      isMaintained: project.is_maintained,
+      featured: project.featured,
+      cover,
+      mobileCover,
+      gallery,
+      urls: projectUrls,
+      updatedAt: project.updated_at,
+    };
+  });
 }
 
-function parseProject(slug: string, markdown: string): PortfolioProject | null {
-  if (!slugPattern.test(slug)) return null;
-  const parsed = matter(markdown);
-  const meta = metaSchema.parse(parsed.data);
-  if (meta.draft) return null;
-  const cover = meta.cover ? portfolioImageUrl(meta.cover) : null;
-  if (meta.cover && !cover) throw new Error(`${slug}: 대표 이미지 경로가 올바르지 않습니다.`);
-  return { ...meta, cover, slug, body: parsed.content };
-}
-
-function githubConfig() {
-  const { GITHUB_OWNER, GITHUB_REPO, GITHUB_REF = "main", PORTFOLIO_DIR = "content/portfolio" } = process.env;
-  if (!GITHUB_OWNER || !GITHUB_REPO) return null;
-  if (![GITHUB_OWNER, GITHUB_REPO, GITHUB_REF].every(x => /^[\w.-]+$/.test(x)) || !/^[\w/.-]+$/.test(PORTFOLIO_DIR) || PORTFOLIO_DIR.includes("..")) throw new Error("포트폴리오 저장소 설정이 올바르지 않습니다.");
-  return { owner: GITHUB_OWNER, repo: GITHUB_REPO, ref: GITHUB_REF, dir: PORTFOLIO_DIR };
-}
-
-async function githubJson(url: string): Promise<unknown> {
-  const response = await fetch(url, { headers: { Accept: "application/vnd.github+json", ...(process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}) }, next: { revalidate: 600 } });
-  if (!response.ok) throw new Error(`GitHub 포트폴리오 요청 실패 (${response.status})`);
-  return response.json();
-}
-
-async function sourceFiles(): Promise<{ slug: string; markdown: string }[]> {
-  if (process.env.LOCAL_PREVIEW === "true" && process.env.NODE_ENV !== "production") {
-    const directory = path.join(process.cwd(), "content", "portfolio");
-    const names = (await fs.readdir(directory)).filter(name => /^[a-z0-9][a-z0-9-]*\.md$/.test(name));
-    return Promise.all(names.map(async name => ({ slug: name.slice(0, -3), markdown: await fs.readFile(path.join(directory, name), "utf8") })));
-  }
-  const config = githubConfig();
-  if (!config) return [];
-  const base = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${config.dir}`;
-  const listing = await githubJson(`${base}?ref=${encodeURIComponent(config.ref)}`);
-  if (!Array.isArray(listing)) throw new Error("포트폴리오 파일 목록 형식이 올바르지 않습니다.");
-  const files = listing.filter((item): item is { name: string; type: string } => typeof item === "object" && item !== null && "name" in item && "type" in item && typeof item.name === "string" && item.type === "file" && /^[a-z0-9][a-z0-9-]*\.md$/.test(item.name));
-  return Promise.all(files.map(async file => {
-    const detail = await githubJson(`${base}/${encodeURIComponent(file.name)}?ref=${encodeURIComponent(config.ref)}`) as { content?: string; encoding?: string };
-    if (detail.encoding !== "base64" || !detail.content) throw new Error(`${file.name}: Markdown 파일을 읽을 수 없습니다.`);
-    return { slug: file.name.slice(0, -3), markdown: Buffer.from(detail.content.replace(/\s/g, ""), "base64").toString("utf8") };
-  }));
-}
+const cachedProjects = unstable_cache(loadPortfolioProjects, ["codest-portfolio-v1"], {
+  revalidate: 600,
+});
 
 export async function getPortfolioProjects(): Promise<PortfolioProject[]> {
-  const files = await sourceFiles();
-  const projects = files.map(file => parseProject(file.slug, file.markdown)).filter((item): item is PortfolioProject => item !== null);
-  return projects.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (process.env.NODE_ENV !== "production") return [];
+    throw new Error("운영 포트폴리오용 Supabase 설정이 필요합니다.");
+  }
+  return cachedProjects();
 }
 
-export async function getPortfolioProject(slug: string) {
+export async function getPortfolioProject(slug: string): Promise<PortfolioProject | null> {
   if (!slugPattern.test(slug)) return null;
   return (await getPortfolioProjects()).find(project => project.slug === slug) ?? null;
 }
