@@ -64,20 +64,7 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className={`${section} bg-white`}>
-          <div
-            className={`${shell} grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)] lg:items-center lg:gap-16 xl:gap-24`}
-          >
-            <h2 className={`${sectionTitle} max-w-[680px] text-balance`}>
-              만들고 싶은 것이 있다면, 그 이야기부터 시작해요.
-            </h2>
-            <p className="max-w-[440px] break-keep text-[17px] leading-[1.9] text-[#526574] lg:ml-auto lg:text-lg">
-              막연한 생각도 괜찮습니다. 함께 구체화해요.
-            </p>
-          </div>
-        </section>
-
-        <section className={`${section} bg-[#f5f8fa]`}>
+        <section className={`${section}`}>
           <div className={shell}>
             <div className="mb-12 flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
               <div>
@@ -108,7 +95,7 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className={`${section} bg-white`}>
+        <section className={`${section} bg-[#f5f8fa]`}>
           <div
             className={`${shell} grid gap-12 lg:grid-cols-[minmax(0,.86fr)_minmax(0,1.14fr)] lg:gap-20 xl:gap-28`}
           >
@@ -147,7 +134,7 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className={`${section} bg-[#e9f3f9]`}>
+        <section className={`${section} bg-white`}>
           <div className={shell}>
             <div className="grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)] lg:items-center lg:gap-16 xl:gap-24">
               <h2 className={`${sectionTitle} max-w-[670px] text-balance`}>
