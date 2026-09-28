@@ -1,11 +1,9 @@
 import "server-only";
 import nodemailer from "nodemailer";
-import { db } from "@/lib/db";
-import { renderNotification } from "./render";
-import { validateNotification } from "./schema";
+import { renderNotification } from "./template";
+import { validateNotification, type DeliveryStatus } from "./schema";
 
-type Status = "sent" | "failed" | "needs_review";
-type Row = {
+export type NotificationMessage = {
   id: string;
   to: string;
   recipt: unknown;
@@ -13,7 +11,7 @@ type Row = {
   payload: unknown;
 };
 
-async function send(row: Row): Promise<Status> {
+export async function sendNotification(row: NotificationMessage): Promise<DeliveryStatus> {
   let mail: ReturnType<typeof renderNotification>;
   let recipt: ReturnType<typeof validateNotification>["recipt"];
   try {
@@ -76,25 +74,4 @@ async function send(row: Row): Promise<Status> {
   } finally {
     transport.close();
   }
-}
-
-export async function runNotificationBatch() {
-  const start = Date.now();
-  const result = { processed: 0, sent: 0, failed: 0, needsReview: 0 };
-  for (let index = 0; index < 10 && Date.now() - start < 30000; index++) {
-    const { data: row, error } = await db().rpc("claim_notification");
-    if (error) throw new Error(`알림 확보 실패: ${error.code}`);
-    if (!row) break;
-    const status = await send(row as Row);
-    const { data: finished, error: finishError } = await db().rpc("finish_notification", {
-      p_id: row.id,
-      p_status: status,
-    });
-    if (finishError || !finished) throw new Error(`알림 결과 저장 실패: ${row.id}`);
-    result.processed++;
-    if (status === "sent") result.sent++;
-    else if (status === "failed") result.failed++;
-    else result.needsReview++;
-  }
-  return result;
 }

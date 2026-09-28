@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import SiteFrame from "@/components/site/SiteFrame";
-import ProjectCard from "@/components/site/ProjectCard";
+import ProjectCard from "@/components/portfolio/ProjectCard";
 import {
   button,
   section,
@@ -10,7 +10,7 @@ import {
   textLink,
   primaryButton,
 } from "@/components/site/styles";
-import { getPortfolioProjects } from "@/lib/portfolio";
+import { getPortfolioProjects } from "@/lib/portfolio/public/repository";
 
 export const revalidate = 600;
 

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { PortfolioProject } from "@/lib/portfolio";
+import type { PortfolioProject } from "@/lib/portfolio/public/types";
 
 export default function ProjectCard({
   project,

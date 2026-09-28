@@ -2,14 +2,14 @@
 
 import { useCallback, useState } from "react";
 import TurnstileWidget from "./TurnstileWidget";
-import { outlineButton, primaryButton } from "./styles";
+import { outlineButton, primaryButton } from "@/components/site/styles";
 
 type InquiryFormProps = {
   enabled: boolean;
   siteKey?: string;
 };
 
-const initialForm = { name: "", phone: "", email: "", message: "", consent: false, website: "" };
+const initialForm = { name: "", phone: "", email: "", message: "", consent: false };
 const fieldClass =
   "w-full rounded-[11px] border border-[#dce6ec] bg-[#f8fafb] px-4 py-4 text-[15px] text-brand-ink outline-none placeholder:text-[#9caab5] focus:border-brand-blue focus:ring-[3px] focus:ring-[#dceff9] disabled:cursor-not-allowed disabled:text-[#6e7c88]";
 const labelClass = "text-sm font-extrabold text-brand-ink";
@@ -99,17 +99,6 @@ export default function InquiryForm({ enabled, siteKey }: InquiryFormProps) {
           </p>
         </div>
       )}
-      <div className="absolute -left-[10000px] h-px w-px overflow-hidden" aria-hidden="true">
-        <label htmlFor="inquiry-website">웹사이트</label>
-        <input
-          id="inquiry-website"
-          name="website"
-          tabIndex={-1}
-          autoComplete="off"
-          value={form.website}
-          onChange={(event) => setForm({ ...form, website: event.target.value })}
-        />
-      </div>
       <div className="grid gap-6 sm:grid-cols-2 sm:gap-4">
         <div className="grid gap-2">
           <label className={labelClass} htmlFor="inquiry-name">
@@ -118,6 +107,7 @@ export default function InquiryForm({ enabled, siteKey }: InquiryFormProps) {
           <input
             className={fieldClass}
             id="inquiry-name"
+            type="text"
             autoComplete="name"
             placeholder="성함을 알려주세요"
             required
@@ -170,14 +160,13 @@ export default function InquiryForm({ enabled, siteKey }: InquiryFormProps) {
           className={`${fieldClass} min-h-[175px] resize-y leading-7`}
           id="inquiry-message"
           required
-          minLength={20}
+          minLength={1}
           maxLength={5000}
           disabled={!enabled}
           value={form.message}
           onChange={(event) => setForm({ ...form, message: event.target.value })}
           placeholder="어떤 서비스를 만들고 싶으신가요? 목적이나 필요한 기능을 아는 만큼 적어주세요."
         />
-        <small className="text-xs text-[#8a98a3]">간단히 적어주셔도 괜찮습니다. (20자 이상)</small>
       </div>
       <label className="flex items-start gap-3 text-sm leading-6 text-[#394d5b]">
         <input

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import SiteFrame from "@/components/site/SiteFrame";
-import ProjectCard from "@/components/site/ProjectCard";
+import ProjectCard from "@/components/portfolio/ProjectCard";
 import { pageTitle, shell } from "@/components/site/styles";
-import { getPortfolioProjects } from "@/lib/portfolio";
+import { getPortfolioProjects } from "@/lib/portfolio/public/repository";
 
 export const metadata: Metadata = {
   title: "포트폴리오",

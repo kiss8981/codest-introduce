@@ -2,60 +2,8 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
-
-const portfolioRow = z.object({
-  id: z.string().uuid(),
-  slug: z.string(),
-  name: z.string(),
-  summary: z.string(),
-  description: z.string(),
-  category: z.string(),
-  stack: z.array(z.string()),
-  started_at: z.string().nullable(),
-  ended_at: z.string().nullable(),
-  is_maintained: z.boolean(),
-  featured: z.boolean(),
-  thumbnail_photo_id: z.string().uuid().nullable(),
-  mobile_thumbnail_photo_id: z.string().uuid().nullable(),
-  updated_at: z.string(),
-});
-
-const photoRow = z.object({
-  id: z.string().uuid(),
-  portfolio_id: z.string().uuid(),
-  storage_key: z.string(),
-  alt_text: z.string(),
-  gallery_order: z.number().int().nullable(),
-  created_at: z.string(),
-});
-
-const urlRow = z.object({
-  id: z.string().uuid(),
-  portfolio_id: z.string().uuid(),
-  type: z.string(),
-  label: z.string().nullable(),
-  url: z.string(),
-  sort_order: z.number().int(),
-});
-
-export type PortfolioProject = {
-  id: string;
-  slug: string;
-  title: string;
-  summary: string;
-  body: string;
-  category: string;
-  stack: string[];
-  startedAt: string | null;
-  endedAt: string | null;
-  isMaintained: boolean;
-  featured: boolean;
-  cover: string | null;
-  mobileCover: string | null;
-  gallery: { id: string; src: string; alt: string }[];
-  urls: { type: string; label: string | null; url: string }[];
-  updatedAt: string;
-};
+import { photoRow, portfolioRow, urlRow } from "./schema";
+import type { PortfolioProject } from "./types";
 
 const slugPattern = /^[a-z0-9][a-z0-9-]{0,79}$/;
 
@@ -140,6 +88,7 @@ async function loadPortfolioProjects(): Promise<PortfolioProject[]> {
 
 const cachedProjects = unstable_cache(loadPortfolioProjects, ["codest-portfolio-v1"], {
   revalidate: 600,
+  tags: ["codest-portfolio"],
 });
 
 export async function getPortfolioProjects(): Promise<PortfolioProject[]> {

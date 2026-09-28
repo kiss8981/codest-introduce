@@ -8,7 +8,7 @@ const inquiry = z.object({
   name: z.string().min(1).max(80),
   phone: z.string().min(1).max(30),
   email: z.email(),
-  message: z.string().min(20).max(5000),
+  message: z.string().min(1).max(5000),
   receiptId: z.string().uuid(),
 });
 let compiled: Handlebars.TemplateDelegate | undefined;

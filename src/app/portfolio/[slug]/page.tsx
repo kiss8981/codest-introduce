@@ -11,7 +11,7 @@ import {
   sectionTitle,
   shell,
 } from "@/components/site/styles";
-import { getPortfolioProject, getPortfolioProjects } from "@/lib/portfolio";
+import { getPortfolioProject, getPortfolioProjects } from "@/lib/portfolio/public/repository";
 
 export const revalidate = 600;
 export const dynamicParams = true;

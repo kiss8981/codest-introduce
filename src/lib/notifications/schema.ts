@@ -1,8 +1,8 @@
 import "server-only";
 import { z } from "zod";
-import { renderNotification } from "./render";
 
 const email = z.email();
+export type DeliveryStatus = "sent" | "failed" | "needs_review";
 export const reciptSchema = z
   .object({
     from: z.object({ name: z.string().max(100).optional(), address: email }).strict(),
@@ -20,8 +20,20 @@ const notificationSchema = z
   })
   .strict();
 
+export const notificationWebhook = z.object({
+  type: z.literal("INSERT"),
+  table: z.literal("notification"),
+  schema: z.literal("public"),
+  record: z.object({
+    id: z.string().uuid(),
+    to: z.string(),
+    recipt: z.unknown(),
+    type: z.string(),
+    payload: z.unknown(),
+    status: z.literal("pending"),
+  }),
+});
+
 export function validateNotification(input: unknown) {
-  const parsed = notificationSchema.parse(input);
-  renderNotification(parsed.type, parsed.payload);
-  return parsed;
+  return notificationSchema.parse(input);
 }

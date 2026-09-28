@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getPortfolioProjects } from "@/lib/portfolio";
+import { getPortfolioProjects } from "@/lib/portfolio/public/repository";
 
 export const revalidate = 600;
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

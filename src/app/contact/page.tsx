@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import SiteFrame from "@/components/site/SiteFrame";
-import InquiryForm from "@/components/site/InquiryForm";
+import InquiryForm from "@/components/inquiries/InquiryForm";
 import { pageTitle, shell } from "@/components/site/styles";
-import { contactAvailability } from "@/lib/inquiry";
+import { contactAvailability } from "@/lib/inquiries/config";
 
 export const metadata: Metadata = {
   title: "제작문의",

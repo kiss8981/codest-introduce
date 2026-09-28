@@ -12,8 +12,13 @@
     "format:check": "node node_modules/prettier/bin/prettier.cjs . --check"
   },
   "dependencies": {
+    "@floating-ui/dom": "1.8.0",
     "@supabase/supabase-js": "^2.57.0",
-    "gray-matter": "^4.0.3",
+    "@tiptap/core": "^3.31.3",
+    "@tiptap/markdown": "^3.31.3",
+    "@tiptap/pm": "^3.31.3",
+    "@tiptap/react": "^3.31.3",
+    "@tiptap/starter-kit": "^3.31.3",
     "handlebars": "^4.7.8",
     "next": "16.3.6",
     "nodemailer": "^7.0.0",
