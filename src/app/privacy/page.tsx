@@ -31,5 +31,11 @@ const text = `
 `;
 
 export default function Privacy() {
-  return <main className={`${shell} min-h-screen py-20 md:py-28`}><div className="mx-auto max-w-[900px]"><Markdown markdown={text} /></div></main>;
+  return (
+    <main className={`${shell} min-h-screen py-20 md:py-28`}>
+      <div className="mx-auto max-w-[900px]">
+        <Markdown markdown={text} />
+      </div>
+    </main>
+  );
 }

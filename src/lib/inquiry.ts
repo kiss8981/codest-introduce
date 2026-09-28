@@ -9,8 +9,7 @@ export const inquirySchema = z.object({
     .min(1)
     .max(30)
     .refine(
-      value =>
-        (value.match(/\d/g) ?? []).length >= 8 && /^[+\d\s()-]+$/.test(value),
+      (value) => (value.match(/\d/g) ?? []).length >= 8 && /^[+\d\s()-]+$/.test(value),
       "전화번호를 확인해 주세요.",
     ),
   email: z.email().max(254),
