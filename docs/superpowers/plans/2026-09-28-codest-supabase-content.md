@@ -20,6 +20,7 @@
 - `NOTIFICATION_BATCH_SECRET`은 유지한다. Supabase Cron의 5분 배치가 사용하는 인증값이다.
 - 기존 미커밋 `src/lib/db.ts`·`src/lib/inquiry.ts`·`src/lib/notifications/*` 변경을 보존한다. 특히 알림 발송 동작은 이 작업 범위에서 재작성하지 않는다.
 - 사용자가 세밀한 테스트를 원하지 않으므로 새 테스트 프레임워크나 큰 테스트 묶음을 도입하지 않는다. 아래의 최소 확인만 수행한다.
+- 사용자가 요청한 Prettier를 정확한 버전으로 설치하고 저장소에 `format` 명령을 둔다. 기존 코드의 기능 변경 없이 포맷한다.
 
 ## Review Focus
 
@@ -84,7 +85,8 @@
 ### Task 4: 랜딩 문구와 운영 문서 마무리
 
 **Files:**
-- Modify: `src/app/page.tsx`, `src/components/site/SiteFrame.tsx`, `.env.example`, `docs/operations.md`
+- Create: `.prettierrc.json`, `.prettierignore`
+- Modify: `src/app/page.tsx`, `src/components/site/SiteFrame.tsx`, `.env.example`, `docs/operations.md`, `package.json`, `yarn.lock`
 
 **Interfaces:**
 - Consumes: Task 2의 `PortfolioProject`와 Task 3의 최종 환경변수 목록.
@@ -92,5 +94,6 @@
 
 - [ ] **Step 1: 랜딩의 소개 영역을 제목과 “막연한 생각도 괜찮습니다. 함께 구체화해요.”로 줄인다.** 과정 설명은 승인된 세 문장 경계로 줄을 나누고 좁은 화면에서는 자연스럽게 감기게 한다. 푸터의 이메일 링크만 삭제한다.
 - [ ] **Step 2: `.env.example`과 `docs/operations.md`를 최종 정리한다.** `GITHUB_*`, `PORTFOLIO_DIR`, `LOCAL_PREVIEW`, `CONTACT_FORM_ENABLED`, `CONTACT_POLICY_*`, `TURNSTILE_ALLOWED_HOSTNAMES`, `TRUSTED_CLIENT_IP_HEADER`, `INQUIRY_RATE_LIMIT_SECRET`을 제거한다. `NOTIFICATION_BATCH_SECRET`이 Vercel 서버와 Supabase Vault에 같은 값으로 필요함을 설명한다. `/privacy` 내용·문의 자동 삭제 정책은 변경하지 않는다.
-- [ ] **Step 3: 가벼운 최종 확인을 한다.** `yarn typecheck`, `yarn lint`, `yarn build`, 데스크톱·모바일 랜딩과 문의 화면을 확인한다. 프로젝트 키가 아직 없어서 빌드나 실제 DB 접수를 확인할 수 없으면 그 한계를 기록하고 나머지 확인은 수행한다.
-- [ ] **Step 4: Task 4 파일만 커밋하고 `git status --short`를 확인한다.** 사전에 존재하던 미커밋 변경은 보존한다.
+- [ ] **Step 3: Prettier를 설정하고 실행한다.** `yarn add --dev --exact prettier@3.9.9`로 버전을 고정하고 `package.json`에 `format`(`prettier . --write`)과 `format:check`(`prettier . --check`)를 둔다. `.prettierrc.json`은 기존 따옴표·세미콜론 스타일을 유지하고 `.prettierignore`는 생성물·의존성을 제외한다. 저장소의 코드와 문서를 `yarn format`으로 정리하되 SQL과 환경변수 파일은 지원 범위 밖이면 그대로 둔다.
+- [ ] **Step 4: 가벼운 최종 확인을 한다.** `yarn format:check`, `yarn typecheck`, `yarn lint`, `yarn build`, 데스크톱·모바일 랜딩과 문의 화면을 확인한다. 프로젝트 키가 아직 없어서 빌드나 실제 DB 접수를 확인할 수 없으면 그 한계를 기록하고 나머지 확인은 수행한다.
+- [ ] **Step 5: Task 4 파일과 Prettier가 포맷한 파일만 커밋하고 `git status --short`를 확인한다.** 포맷 외의 사전 미커밋 코드 변경은 보존한다.
