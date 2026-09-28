@@ -2,26 +2,15 @@
 
 ## 시작
 
-Node 20.9 이상을 사용합니다. `yarn install` 후 `.env.example`을 `.env.local`로 복사하고 `yarn dev`를 실행합니다. `LOCAL_PREVIEW=true`는 개발 환경에서만 `content/portfolio/*.md` 예제를 읽습니다. 운영에서는 GitHub 저장소 환경변수를 설정해야 합니다. 설정이 없으면 포트폴리오는 준비 중으로 표시됩니다.
+Node 20.9 이상을 사용합니다. `yarn install` 후 `.env.example`을 `.env.local`로 복사하고 `yarn dev`를 실행합니다. Supabase 설정이 없는 개발 화면에서는 포트폴리오가 준비 중으로 표시됩니다. 운영에서는 Supabase 연결이 필요합니다.
 
 ## 포트폴리오
 
-GitHub 저장소의 `content/portfolio/slug.md` 파일을 읽습니다. 경로와 브랜치는 `PORTFOLIO_DIR`, `GITHUB_REF`로 바꿀 수 있습니다. 비공개 저장소는 읽기 전용 `GITHUB_TOKEN`을 서버에만 설정합니다. 본문은 Markdown/GFM이며 HTML·MDX 실행은 허용하지 않습니다. Front matter 예:
+Supabase SQL Editor에서 `supabase/migrations/202609280001_portfolio.sql`을 한 번 적용합니다. Storage 대시보드에서 `portfolio`라는 공개 버킷을 만들고 이미지 MIME 유형을 JPEG, PNG, WebP, AVIF, GIF로 제한합니다. 공개 버킷의 파일은 링크를 아는 사람이 볼 수 있으므로 비공개 자료를 업로드하지 마세요.
 
-```yaml
----
-title: 프로젝트 제목
-summary: 한 줄 소개
-cover: null
-category: 웹 서비스
-stack: [Next.js, React]
-publishedAt: 2026-09-27
-featured: true
-draft: false
----
-```
+등록은 Table Editor에서 `portfolio` 행을 `is_published=false`로 먼저 만드는 순서입니다. `slug`는 상세 URL에 쓸 영문 소문자·숫자·하이픈 문자열로 입력합니다. Storage의 `portfolio` 버킷에 사진을 업로드하고 `photo_map` 행마다 해당 포트폴리오의 `id`, 버킷 안 파일 경로인 `storage_key`, `filename`, 바이트 단위 `file_size_bytes`, `mime_type`, `alt_text`를 입력합니다. 상세 상단 갤러리에 보일 사진은 `gallery_order`를 0, 1, 2 순서로 채우고 모바일 전용 대표 사진처럼 갤러리에서 제외할 사진은 비워 둡니다.
 
-대표 이미지는 비워 두거나 검증된 HTTPS URL 또는 콘텐츠 디렉터리 안의 상대 경로를 입력합니다. Markdown 본문의 상대 이미지 경로도 같은 디렉터리 기준으로 해석합니다. 비공개 저장소의 상대 이미지는 토큰을 브라우저에 노출하지 않고 서버가 읽어 전달합니다. 목록과 상세는 약 10분 간격으로 갱신됩니다. 새 파일은 재검증 뒤 배포 없이 열립니다. `draft: true` 파일은 노출하지 않습니다. 처음에는 `LOCAL_PREVIEW=true`로 예제 레이아웃을 볼 수 있으며, 예제는 운영 자동 대체 콘텐츠가 아닙니다.
+이후 `portfolio.thumbnail_photo_id`와 선택적인 `mobile_thumbnail_photo_id`에 같은 포트폴리오 사진의 `id`를 넣고, `portfolio_url`에 GitHub·미리보기 등의 링크를 등록합니다. `description`은 짧은 Markdown 소개이며 목록용 한 줄 소개는 `summary`입니다. 확인 후 `is_published=true`로 바꿉니다. 공개 항목은 약 10분마다 갱신되고 새 `slug`도 배포 없이 열립니다. 사진 행을 지우기 전에는 대표 사진 참조를 해제해야 하며, DB 행과 Storage 파일은 각각 별도로 삭제합니다.
 
 ## 문의 개통
 
