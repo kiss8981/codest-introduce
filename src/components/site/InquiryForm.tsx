@@ -6,8 +6,6 @@ import { outlineButton, primaryButton } from "./styles";
 
 type InquiryFormProps = {
   enabled: boolean;
-  policy?: string;
-  version?: string;
   siteKey?: string;
 };
 
@@ -15,7 +13,7 @@ const initialForm = { name: "", phone: "", email: "", message: "", consent: fals
 const fieldClass = "w-full rounded-[11px] border border-[#dce6ec] bg-[#f8fafb] px-4 py-4 text-[15px] text-brand-ink outline-none placeholder:text-[#9caab5] focus:border-brand-blue focus:ring-[3px] focus:ring-[#dceff9] disabled:cursor-not-allowed disabled:text-[#6e7c88]";
 const labelClass = "text-sm font-extrabold text-brand-ink";
 
-export default function InquiryForm({ enabled, policy, version, siteKey }: InquiryFormProps) {
+export default function InquiryForm({ enabled, siteKey }: InquiryFormProps) {
   const [submissionId, setSubmissionId] = useState(() => crypto.randomUUID());
   const [token, setToken] = useState<string | null>(null);
   const [resetKey, setResetKey] = useState(0);
@@ -59,7 +57,7 @@ export default function InquiryForm({ enabled, policy, version, siteKey }: Inqui
       <div className="py-6" role="status">
         <span className="grid h-[52px] w-[52px] place-items-center rounded-full bg-[#d6f4e5] text-2xl text-[#18784b]" aria-hidden="true">✓</span>
         <h2 className="mt-5 text-3xl font-extrabold">문의가 접수되었습니다.</h2>
-        <p className="mt-3 leading-7 text-brand-muted">내용을 확인한 뒤 연락드리겠습니다. 확인 메일은 발송 대기 중입니다.</p>
+        <p className="mt-3 leading-7 text-brand-muted">내용을 확인한 뒤 연락드리겠습니다.</p>
         <p className="mt-5 break-all rounded-xl bg-brand-soft p-4 text-[13px] text-brand-muted">접수번호 {success}</p>
         <button type="button" className={`${outlineButton} mt-6`} onClick={() => { setSuccess(null); setForm(initialForm); }}>새 문의 작성하기</button>
       </div>
@@ -97,13 +95,9 @@ export default function InquiryForm({ enabled, policy, version, siteKey }: Inqui
         <textarea className={`${fieldClass} min-h-[175px] resize-y leading-7`} id="inquiry-message" required minLength={20} maxLength={5000} disabled={!enabled} value={form.message} onChange={event => setForm({ ...form, message: event.target.value })} placeholder="어떤 서비스를 만들고 싶으신가요? 목적이나 필요한 기능을 아는 만큼 적어주세요." />
         <small className="text-xs text-[#8a98a3]">간단히 적어주셔도 괜찮습니다. (20자 이상)</small>
       </div>
-      <div className="rounded-xl bg-brand-soft px-5 py-5 text-[13px] leading-7 text-[#627583]">
-        <strong className="text-sm text-brand-ink">개인정보 수집·이용 안내</strong>
-        {enabled ? <><p className="mt-2 whitespace-pre-wrap">{policy}</p><small className="mt-2 block">안내 버전: {version}</small></> : <p className="mt-2">운영자가 개인정보 안내를 확정하면 이곳에 표시됩니다.</p>}
-      </div>
       <label className="flex items-start gap-3 text-sm leading-6 text-[#394d5b]">
         <input className="mt-1 h-[17px] w-[17px] shrink-0 accent-brand-blue" type="checkbox" required disabled={!enabled} checked={form.consent} onChange={event => setForm({ ...form, consent: event.target.checked })} />
-        <span>위 개인정보 수집·이용 안내에 동의합니다. <em className="not-italic text-brand-deep">(필수)</em></span>
+        <span><a href="/privacy" target="_blank" rel="noopener noreferrer" className="font-semibold text-brand-deep underline underline-offset-2">개인정보처리방침</a>에 동의합니다. <em className="not-italic text-brand-deep">(필수)</em></span>
       </label>
       {enabled && siteKey && <TurnstileWidget siteKey={siteKey} resetKey={resetKey} onToken={handleToken} onFailure={setRobotError} />}
       {robotError && <p className="text-sm leading-7 text-[#b43435]" role="alert">{robotError} <button className="underline" type="button" onClick={() => { setRobotError(null); setToken(null); setResetKey(value => value + 1); }}>다시 시도</button></p>}

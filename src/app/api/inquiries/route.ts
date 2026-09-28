@@ -1,7 +1,7 @@
-import { createHmac } from "node:crypto";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { contactAvailability, inquirySchema } from "@/lib/inquiry";
+import { CONSENT_VERSION, contactAvailability, inquirySchema } from "@/lib/inquiry";
+import { inquiryRateKey, isAllowedTurnstileHostname, vercelClientIp } from "@/lib/inquiry-security";
 import { validateNotification } from "@/lib/notifications/schema";
 
 export const runtime = "nodejs";
@@ -34,17 +34,14 @@ export async function POST(request: Request) {
   if (!result.success) return NextResponse.json({ error: "입력 내용을 확인해 주세요." }, { status: 400 });
   const data = result.data;
   if (data.website) return NextResponse.json({ error: "입력 내용을 확인해 주세요." }, { status: 400 });
-  const headerName = process.env.TRUSTED_CLIENT_IP_HEADER!;
-  if (!/^[a-z0-9-]+$/i.test(headerName)) return NextResponse.json({ error: "서버 설정 오류" }, { status: 503 });
-  const clientIp = request.headers.get(headerName)?.trim();
-  if (!clientIp || clientIp.includes(",") || clientIp.length > 64) return NextResponse.json({ error: "접속 정보를 확인할 수 없습니다." }, { status: 400 });
-  const hostnames = process.env.TURNSTILE_ALLOWED_HOSTNAMES!.split(",").map(x => x.trim()).filter(Boolean);
-  if (!hostnames.length || (process.env.NODE_ENV === "production" && testSecrets.has(process.env.TURNSTILE_SECRET_KEY!))) return NextResponse.json({ error: "보안 설정 오류" }, { status: 503 });
+  const clientIp = vercelClientIp(request.headers, process.env.NODE_ENV === "production");
+  if (!clientIp) return NextResponse.json({ error: "접속 정보를 확인할 수 없습니다." }, { status: 400 });
+  if (process.env.NODE_ENV === "production" && testSecrets.has(process.env.TURNSTILE_SECRET_KEY!)) return NextResponse.json({ error: "보안 설정 오류" }, { status: 503 });
   const challenge = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: new URLSearchParams({ secret: process.env.TURNSTILE_SECRET_KEY!, response: data.turnstileToken, remoteip: clientIp }), cache: "no-store" }).then(response => response.json()).catch(() => null) as { success?: boolean; hostname?: string; action?: string } | null;
-  if (!challenge?.success || !challenge.hostname || !hostnames.includes(challenge.hostname) || challenge.action !== "inquiry") return NextResponse.json({ error: "로봇 확인을 다시 완료해 주세요." }, { status: 400 });
-  const rateKey = createHmac("sha256", process.env.INQUIRY_RATE_LIMIT_SECRET!).update(clientIp).digest("hex");
+  if (!challenge?.success || !challenge.hostname || !isAllowedTurnstileHostname(challenge.hostname, process.env.SITE_URL!) || challenge.action !== "inquiry") return NextResponse.json({ error: "로봇 확인을 다시 완료해 주세요." }, { status: 400 });
+  const rateKey = inquiryRateKey(clientIp, process.env.TURNSTILE_SECRET_KEY!);
   const from = process.env.MAIL_FROM!;
-  const inquiry = { submission_id: data.submissionId, name: data.name, phone: data.phone, email: data.email, message: data.message, consent_version: setup.version };
+  const inquiry = { submission_id: data.submissionId, name: data.name, phone: data.phone, email: data.email, message: data.message, consent_version: CONSENT_VERSION };
   const notification = validateNotification({ to: data.email, recipt: { from: { name: "Codest", address: from }, replyTo: [from], bcc: [from] }, type: "inquiry_received.v1", payload: { name: data.name, phone: data.phone, email: data.email, message: data.message, receiptId: "00000000-0000-4000-8000-000000000000" } });
   const { data: saved, error } = await db().rpc("submit_inquiry", { p_inquiry: inquiry, p_notification: notification, p_limit_key: rateKey });
   if (error) {

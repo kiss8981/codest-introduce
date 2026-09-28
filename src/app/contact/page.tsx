@@ -25,7 +25,7 @@ export default function ContactPage() {
               <h2 className="break-keep text-[clamp(1.5rem,2.5vw,2rem)] font-extrabold tracking-[-0.05em]">프로젝트에 대해 알려주세요</h2>
               <p className="mt-2 text-[15px] text-brand-muted">아는 만큼만 적어주셔도 됩니다.</p>
             </div>
-            <InquiryForm enabled={setup.enabled} policy={setup.policy} version={setup.version} siteKey={setup.siteKey} />
+            <InquiryForm enabled={setup.enabled} siteKey={setup.siteKey} />
           </div>
           <aside className="max-w-[600px] lg:order-1">
             <h2 className="max-w-[400px] break-keep text-balance text-[clamp(1.75rem,3vw,2.45rem)] font-extrabold leading-[1.35] tracking-[-0.055em]">한 번에 다 정하지 않아도 괜찮습니다.</h2>
