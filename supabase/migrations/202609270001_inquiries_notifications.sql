@@ -19,6 +19,7 @@ create table if not exists codest_internal.inquiry_rate_limit (
   rate_key text not null,
   created_at timestamptz not null default now()
 );
+alter table codest_internal.inquiry_rate_limit enable row level security;
 create index if not exists inquiry_rate_limit_key_created_idx on codest_internal.inquiry_rate_limit (rate_key, created_at desc);
 create index if not exists inquiry_rate_limit_created_idx on codest_internal.inquiry_rate_limit (created_at);
 revoke all on codest_internal.inquiry_rate_limit from public, anon, authenticated;

@@ -64,7 +64,8 @@ export async function POST(request: Request) {
   const clientIp = vercelClientIp(request.headers, process.env.NODE_ENV === "production");
   if (!clientIp)
     return NextResponse.json({ error: "접속 정보를 확인할 수 없습니다." }, { status: 400 });
-  if (process.env.NODE_ENV === "production" && testSecrets.has(process.env.TURNSTILE_SECRET_KEY!))
+  const testKey = testSecrets.has(process.env.TURNSTILE_SECRET_KEY!);
+  if (process.env.NODE_ENV === "production" && testKey)
     return NextResponse.json({ error: "보안 설정 오류" }, { status: 503 });
   const challenge = (await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
     method: "POST",
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
     !challenge?.success ||
     !challenge.hostname ||
     !isAllowedTurnstileHostname(challenge.hostname, process.env.SITE_URL!) ||
-    challenge.action !== "inquiry"
+    challenge.action !== (testKey ? "test" : "inquiry")
   )
     return NextResponse.json({ error: "로봇 확인을 다시 완료해 주세요." }, { status: 400 });
   const rateKey = inquiryRateKey(clientIp, process.env.TURNSTILE_SECRET_KEY!);

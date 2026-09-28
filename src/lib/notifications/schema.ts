@@ -15,7 +15,7 @@ const notificationSchema = z
   .object({
     to: email,
     recipt: reciptSchema,
-    type: z.enum(["inquiry_received.v1", "notice.v1"]),
+    type: z.literal("inquiry_received.v1"),
     payload: z.record(z.string(), z.string()),
   })
   .strict();

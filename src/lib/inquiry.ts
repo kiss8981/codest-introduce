@@ -28,7 +28,7 @@ export function contactAvailability() {
     !!process.env.TURNSTILE_SECRET_KEY &&
     !!process.env.SITE_URL &&
     !!process.env.SUPABASE_URL &&
-    !!process.env.SUPABASE_SERVICE_ROLE_KEY &&
+    !!process.env.SUPABASE_SECRET_KEY &&
     z.email().safeParse(process.env.MAIL_FROM).success;
   return { enabled, siteKey };
 }

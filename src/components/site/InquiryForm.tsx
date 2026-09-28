@@ -87,7 +87,7 @@ export default function InquiryForm({ enabled, siteKey }: InquiryFormProps) {
   }
 
   return (
-    <form className="grid gap-6" onSubmit={submit}>
+    <form className="relative grid gap-6" onSubmit={submit}>
       {!enabled && (
         <div
           className="rounded-xl bg-[#eaf5fc] px-5 py-4 text-sm leading-6 text-[#225374]"

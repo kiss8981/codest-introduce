@@ -75,5 +75,7 @@ export default function TurnstileWidget({
       if (widgetId && window.turnstile) window.turnstile.remove(widgetId);
     };
   }, [siteKey, resetKey, onToken, onFailure]);
-  return <div className="min-h-[70px] max-w-full" ref={container} aria-label="로봇 확인" />;
+  return (
+    <div className="absolute h-px w-px overflow-hidden" ref={container} aria-label="로봇 확인" />
+  );
 }

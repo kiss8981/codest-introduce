@@ -143,7 +143,7 @@ const cachedProjects = unstable_cache(loadPortfolioProjects, ["codest-portfolio-
 });
 
 export async function getPortfolioProjects(): Promise<PortfolioProject[]> {
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SECRET_KEY) {
     if (process.env.NODE_ENV !== "production") return [];
     throw new Error("운영 포트폴리오용 Supabase 설정이 필요합니다.");
   }
