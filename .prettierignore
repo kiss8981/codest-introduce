@@ -1,0 +1,10 @@
+node_modules/
+.next/
+.git/
+.superpowers/
+.env*
+yarn.lock
+supabase/**/*.sql
+src/lib/notifications/templates/*.hbs
+public/
+docs/superpowers/

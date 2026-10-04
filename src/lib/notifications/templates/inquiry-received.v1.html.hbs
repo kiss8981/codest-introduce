@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+  </head>
+  <body style="margin: 0; padding: 28px 12px; background: #f4f7fa; font-family: Arial, sans-serif; color: #182331">
+    <table role="presentation" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%; margin: auto; background: #fff; border-collapse: collapse">
+      <tr>
+        <td style="padding: 28px 30px; background: #080c12; color: #fff; font-size: 22px; font-weight: 700">Codest</td>
+      </tr>
+      <tr>
+        <td style="padding: 32px 30px">
+          <h1 style="font-size: 24px; line-height: 1.4; margin: 0 0 16px">제작문의가 접수되었습니다.</h1>
+          <p style="font-size: 15px; line-height: 1.8; margin: 0 0 26px">
+            안녕하세요, {{name}}님.<br />내용을 확인한 뒤 연락드리겠습니다.
+          </p>
+          <table role="presentation" style="width: 100%; border-top: 2px solid #20c0ff; border-collapse: collapse; font-size: 14px; line-height: 1.7">
+            <tr><th style="text-align: left; vertical-align: top; padding: 12px 8px 12px 0; width: 96px">접수번호</th><td style="padding: 12px 0; overflow-wrap: anywhere">{{receiptId}}</td></tr>
+            <tr><th style="text-align: left; vertical-align: top; padding: 12px 8px 12px 0">이름</th><td style="padding: 12px 0; overflow-wrap: anywhere">{{name}}</td></tr>
+            <tr><th style="text-align: left; vertical-align: top; padding: 12px 8px 12px 0">전화번호</th><td style="padding: 12px 0; overflow-wrap: anywhere">{{phone}}</td></tr>
+            <tr><th style="text-align: left; vertical-align: top; padding: 12px 8px 12px 0">이메일</th><td style="padding: 12px 0; overflow-wrap: anywhere">{{email}}</td></tr>
+            <tr><th style="text-align: left; vertical-align: top; padding: 12px 8px 12px 0">제작내용</th><td style="padding: 12px 0; overflow-wrap: anywhere">{{#each messageLines}}{{this}}{{#unless @last}}<br />{{/unless}}{{/each}}</td></tr>
+          </table>
+          <p style="font-size: 13px; line-height: 1.7; color: #617081; margin: 28px 0 0">이 메일에 답장하시면 Codest 담당자에게 전달됩니다.</p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

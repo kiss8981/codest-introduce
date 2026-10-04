@@ -3,27 +3,42 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "dev": "node node_modules/next/dist/bin/next dev",
+    "build": "node node_modules/next/dist/bin/next build",
+    "start": "node node_modules/next/dist/bin/next start",
+    "lint": "node node_modules/eslint/bin/eslint.js .",
+    "typecheck": "node node_modules/typescript/bin/tsc --noEmit --incremental false",
+    "format": "node node_modules/prettier/bin/prettier.cjs . --write",
+    "format:check": "node node_modules/prettier/bin/prettier.cjs . --check"
   },
   "dependencies": {
-    "next": "14.1.0",
-    "react": "^18",
-    "react-dom": "^18",
+    "@floating-ui/dom": "1.8.0",
+    "@supabase/supabase-js": "^2.57.0",
+    "@tiptap/core": "^3.31.3",
+    "@tiptap/markdown": "^3.31.3",
+    "@tiptap/pm": "^3.31.3",
+    "@tiptap/react": "^3.31.3",
+    "@tiptap/starter-kit": "^3.31.3",
+    "handlebars": "^4.7.8",
+    "next": "16.3.6",
+    "nodemailer": "^7.0.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "react-markdown": "^9.0.1",
-    "remark-gfm": "^4.0.0"
+    "remark-gfm": "^4.0.0",
+    "zod": "^4.1.0"
   },
   "devDependencies": {
     "@types/node": "^20",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
+    "@types/nodemailer": "^7",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
     "autoprefixer": "^10.0.1",
-    "eslint": "^8",
-    "eslint-config-next": "14.1.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.6",
     "postcss": "^8",
+    "prettier": "3.9.9",
     "tailwindcss": "^3.3.0",
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   }
 }
