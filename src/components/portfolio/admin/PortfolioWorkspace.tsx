@@ -91,10 +91,11 @@ export default function PortfolioWorkspace({
   }, [client, load]);
 
   async function persist(record: AdminPortfolio) {
+    const { id: projectId, ...newProject } = record;
     const { id } = await call<{ id: string }>(
       "/api/admin/portfolio",
-      record.id ? "PATCH" : "POST",
-      record,
+      projectId ? "PATCH" : "POST",
+      projectId ? record : newProject,
     );
     return id;
   }
