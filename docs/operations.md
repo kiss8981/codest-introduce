@@ -9,8 +9,9 @@ Codest Web Supabase 프로젝트에는 다음 SQL을 순서대로 적용합니�
 1. `supabase/migrations/202609270001_inquiries_notifications.sql`
 2. `supabase/migrations/202609280001_portfolio.sql`
 3. `supabase/migrations/202609280002_simple_inquiry.sql`
+4. `supabase/migrations/202610040001_notification_webhook.sql`
 
-세 SQL은 모두 Codest Web 프로젝트에 적용되어 있습니다. 세 번째 SQL은 문의 내용의 최소 길이를 1자로 바꾸고, 기존 30초 배치와 IP 제한 정리 작업을 해제합니다. 문의 데이터의 자동 삭제는 하지 않습니다.
+네 SQL 모두 Codest Web 프로젝트에 적용되어 있습니다. 세 번째 SQL은 문의 내용의 최소 길이를 1자로 바꾸고, 기존 30초 배치와 IP 제한 정리 작업을 해제합니다. 네 번째 SQL은 새 알림을 즉시 전달하는 트리거입니다. 문의 데이터의 자동 삭제는 하지 않습니다.
 
 ## 포트폴리오 관리
 
@@ -24,6 +25,6 @@ Codest Web Supabase 프로젝트에는 다음 SQL을 순서대로 적용합니�
 
 문의 폼은 Cloudflare Turnstile 보이지 않음 모드를 사용합니다. Turnstile 확인 후 `inquiries`와 `notification` 행을 한 트랜잭션으로 저장합니다. 방문자는 DB 저장 직후 접수번호를 받습니다. SMTP 설정이 없어도 DB 접수는 가능하지만, 메일을 보내려면 SMTP2GO 환경변수와 아래 웹훅이 필요합니다.
 
-배치는 사용하지 않습니다. Supabase **Database → Webhooks**에서 `public.notification`의 **INSERT** 이벤트를 등록합니다. URL은 배포된 `https://codest.kr/api/internal/notifications`, Method는 `POST`, 헤더는 `Content-Type: application/json`과 `Authorization: Bearer <NOTIFICATION_WEBHOOK_SECRET>`입니다. Vercel의 `NOTIFICATION_WEBHOOK_SECRET`과 웹훅 헤더의 값은 동일한 긴 무작위 문자열로 설정합니다. 웹훅은 삽입된 알림 행을 본문으로 전달하므로 서버가 발송 내용을 다시 조회하지 않습니다. 중복 발송을 막는 상태 변경과 결과 기록에는 DB 업데이트가 필요합니다.
+배치는 사용하지 않습니다. Supabase Vault에 `codest_notification_webhook`이라는 이름으로 인증키를 저장하고, Vercel Production의 `NOTIFICATION_WEBHOOK_SECRET`에 같은 값을 설정합니다. 네 번째 SQL의 `notification` INSERT 트리거는 Vault에서 키를 읽어 `https://codest.kr/api/internal/notifications`로 행 본문을 전달합니다. 넓은 권한을 추가하는 Database Webhooks 통합 설치는 필요하지 않습니다. Vercel 환경변수를 추가하거나 바꾼 뒤에는 Production을 재배포해야 합니다. 서버는 발송 내용을 다시 조회하지 않으며, 중복 발송을 막는 상태 변경과 결과 기록에만 DB 업데이트를 사용합니다.
 
-현재 알림 유형은 `inquiry_received.v1` 하나이며, `src/lib/notifications/templates/inquiry-received.v1.html.hbs`로 메일을 만듭니다. 문의자에게 보내는 메일 한 건에 `kdh@codest.kr`을 BCC로 넣습니다. `sent`는 SMTP 서버 접수를 뜻하고 실제 받은편지함 도착을 보장하지 않습니다. 웹훅 호출 자체가 실패하면 행은 `pending`으로 남을 수 있으므로 Supabase의 Webhook 실행 이력과 `notification.status`를 확인합니다. 자동 재발송은 설정하지 않았습니다.
+현재 알림 유형은 `inquiry_received.v1` 하나이며, `src/lib/notifications/templates/inquiry-received.v1.html.hbs`로 메일을 만듭니다. 문의자에게 보내는 메일 한 건에 `kdh@codest.kr`을 BCC로 넣습니다. `sent`는 SMTP 서버 접수를 뜻하고 실제 받은편지함 도착을 보장하지 않습니다. 요청 실패 시 행은 `pending`으로 남을 수 있으므로 `net._http_response`의 최근 오류와 `notification.status`를 확인합니다. 트리거를 설치하기 전에 생성된 `pending` 행은 자동 발송되지 않습니다. 자동 재발송은 설정하지 않았습니다.
